@@ -1,3 +1,28 @@
+// List of fast fashion websites
+const fastFashionSites = [
+  'hm.com',
+  'shein.com',
+  'zara.com',
+  'fashionnova.com',
+  'forever21.com',
+  'uniqlo.com',
+  'gap.com',
+  'hollister.com',
+  'abercrombie.com'
+];
+
+// List of second-hand marketplaces
+const secondHandSites = [
+  'depop.com',
+  'grailed.com',
+  'poshmark.com',
+  'thredup.com',
+  'mercari.com',
+  'vinted.com',
+  'etsy.com',
+  'ebay.com'
+];
+
 // Product information extractor for different websites
 const extractors = {
   'hm.com': () => {
@@ -30,26 +55,79 @@ function extractKeywords(title) {
     .filter(word => word.length > 2);
 }
 
-// Function to get current website
+// Function to get current website and check if it's a fast fashion site
 function getCurrentWebsite() {
   const hostname = window.location.hostname;
-  if (hostname.includes('hm.com')) return 'hm.com';
-  if (hostname.includes('shein.com')) return 'shein.com';
-  if (hostname.includes('zara.com')) return 'zara.com';
-  return null;
+  const site = fastFashionSites.find(site => hostname.includes(site));
+  if (site) {
+    return {
+      site,
+      isFastFashion: true
+    };
+  }
+  return {
+    site: null,
+    isFastFashion: false
+  };
+}
+
+// Function to generate search URLs for second-hand marketplaces
+function generateSearchUrls(keywords) {
+  const searchQuery = keywords.join(' ');
+  return secondHandSites.map(site => {
+    const baseUrl = `https://www.${site}`;
+    let searchUrl;
+    
+    switch(site) {
+      case 'depop.com':
+        searchUrl = `${baseUrl}/search?q=${encodeURIComponent(searchQuery)}`;
+        break;
+      case 'grailed.com':
+        searchUrl = `${baseUrl}/search?q=${encodeURIComponent(searchQuery)}`;
+        break;
+      case 'poshmark.com':
+        searchUrl = `${baseUrl}/search?query=${encodeURIComponent(searchQuery)}`;
+        break;
+      case 'thredup.com':
+        searchUrl = `${baseUrl}/search?search_term=${encodeURIComponent(searchQuery)}`;
+        break;
+      case 'mercari.com':
+        searchUrl = `${baseUrl}/search?keyword=${encodeURIComponent(searchQuery)}`;
+        break;
+      case 'vinted.com':
+        searchUrl = `${baseUrl}/catalog?search_text=${encodeURIComponent(searchQuery)}`;
+        break;
+      case 'etsy.com':
+        searchUrl = `${baseUrl}/search?q=${encodeURIComponent(searchQuery)}`;
+        break;
+      case 'ebay.com':
+        searchUrl = `${baseUrl}/sch/i.html?_nkw=${encodeURIComponent(searchQuery)}`;
+        break;
+    }
+    
+    return {
+      platform: site,
+      url: searchUrl
+    };
+  });
 }
 
 // Main function to extract product information
 function extractProductInfo() {
-  const website = getCurrentWebsite();
-  if (!website || !extractors[website]) return null;
+  const { site, isFastFashion } = getCurrentWebsite();
+  if (!site || !extractors[site]) return null;
 
-  const productInfo = extractors[website]();
+  const productInfo = extractors[site]();
   if (!productInfo.title) return null;
+
+  const keywords = extractKeywords(productInfo.title);
+  const searchUrls = isFastFashion ? generateSearchUrls(keywords) : [];
 
   return {
     ...productInfo,
-    keywords: extractKeywords(productInfo.title)
+    keywords,
+    isFastFashion,
+    searchUrls
   };
 }
 
@@ -63,8 +141,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Observe DOM changes to detect when product information is loaded
 const observer = new MutationObserver((mutations) => {
-  const website = getCurrentWebsite();
-  if (!website) return;
+  const { site, isFastFashion } = getCurrentWebsite();
+  if (!site) return;
 
   const productInfo = extractProductInfo();
   if (productInfo) {

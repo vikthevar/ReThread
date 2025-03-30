@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Sustainable Fashion Finder",
+  "name": "ReThread",
   "version": "1.0",
-  "description": "Find second-hand alternatives while browsing fast fashion websites",
+  "description": "Find second-hand alternatives while browsing any fashion website",
   "permissions": [
     "activeTab",
     "storage",
@@ -14,22 +14,53 @@
     "*://*.zara.com/*",
     "*://*.depop.com/*",
     "*://*.grailed.com/*",
-    "*://*.poshmark.com/*"
+    "*://*.poshmark.com/*",
+    "*://*.thredup.com/*",
+    "*://*.mercari.com/*",
+    "*://*.vinted.com/*",
+    "*://*.etsy.com/*",
+    "*://*.ebay.com/*",
+    "*://*.asos.com/*",
+    "*://*.fashionnova.com/*",
+    "*://*.forever21.com/*",
+    "*://*.urbanoutfitters.com/*",
+    "*://*.nordstrom.com/*",
+    "*://*.macy.com/*",
+    "*://*.uniqlo.com/*",
+    "*://*.gap.com/*",
+    "*://*.zara.com/*",
+    "*://*.hollister.com/*",
+    "*://*.abercrombie.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
+    "default_icon": "icon.png"
   },
   "content_scripts": [
     {
       "matches": [
         "*://*.hm.com/*",
         "*://*.shein.com/*",
-        "*://*.zara.com/*"
+        "*://*.zara.com/*",
+        "*://*.depop.com/*",
+        "*://*.grailed.com/*",
+        "*://*.poshmark.com/*",
+        "*://*.thredup.com/*",
+        "*://*.mercari.com/*",
+        "*://*.vinted.com/*",
+        "*://*.etsy.com/*",
+        "*://*.ebay.com/*",
+        "*://*.asos.com/*",
+        "*://*.fashionnova.com/*",
+        "*://*.forever21.com/*",
+        "*://*.urbanoutfitters.com/*",
+        "*://*.nordstrom.com/*",
+        "*://*.macy.com/*",
+        "*://*.uniqlo.com/*",
+        "*://*.gap.com/*",
+        "*://*.zara.com/*",
+        "*://*.hollister.com/*",
+        "*://*.abercrombie.com/*"
       ],
       "js": ["content.js"]
     }
@@ -38,8 +69,6 @@
     "service_worker": "background.js"
   },
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "128": "icon.png"
   }
 } 
