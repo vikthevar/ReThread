@@ -1,96 +1,90 @@
-// AI Service for clothing similarity search
-class ClothingAIService {
+// Service for clothing similarity search
+class ClothingService {
   constructor() {
-    this.API_KEY = ''; // You'll need to add your API key here
-    this.API_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+    // Keywords to extract from descriptions
+    this.keywordCategories = {
+      style: ['casual', 'formal', 'vintage', 'modern', 'streetwear', 'bohemian', 'minimalist', 'athletic', 'preppy', 'grunge'],
+      type: ['dress', 'shirt', 'pants', 'jacket', 'sweater', 'hoodie', 'skirt', 'shorts', 'coat', 'blazer'],
+      material: ['cotton', 'denim', 'leather', 'silk', 'wool', 'polyester', 'linen', 'suede', 'cashmere', 'velvet'],
+      color: ['black', 'white', 'red', 'blue', 'green', 'yellow', 'purple', 'pink', 'brown', 'gray', 'navy', 'beige'],
+      pattern: ['solid', 'striped', 'floral', 'plaid', 'polka dot', 'checkered', 'leopard', 'camouflage', 'tie dye', 'geometric']
+    };
   }
 
-  // Extract clothing features from image and description
-  async analyzeClothing(imageUrl, description) {
-    try {
-      const response = await fetch(this.API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4-vision-preview",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: `Analyze this clothing item and provide detailed features. Description: ${description}`
-                },
-                {
-                  type: "image_url",
-                  image_url: imageUrl
-                }
-              ]
-            }
-          ],
-          max_tokens: 500
-        })
-      });
+  // Extract keywords from description
+  extractKeywords(description) {
+    if (!description) return null;
 
-      const data = await response.json();
-      return this.parseAIResponse(data.choices[0].message.content);
-    } catch (error) {
-      console.error('Error analyzing clothing:', error);
-      return null;
+    const keywords = {
+      style: this.findKeywords(description, this.keywordCategories.style),
+      type: this.findKeywords(description, this.keywordCategories.type),
+      material: this.findKeywords(description, this.keywordCategories.material),
+      color: this.findKeywords(description, this.keywordCategories.color),
+      pattern: this.findKeywords(description, this.keywordCategories.pattern)
+    };
+
+    return keywords;
+  }
+
+  // Find keywords from a category in the description
+  findKeywords(description, categoryKeywords) {
+    const lowerDesc = description.toLowerCase();
+    return categoryKeywords.filter(keyword => 
+      lowerDesc.includes(keyword.toLowerCase())
+    );
+  }
+
+  // Generate search queries based on keywords
+  generateSearchQueries(keywords) {
+    const queries = [];
+    
+    // Type-based query (most important)
+    if (keywords.type && keywords.type.length > 0) {
+      queries.push(keywords.type[0]);
     }
-  }
-
-  // Parse AI response into structured data
-  parseAIResponse(response) {
-    try {
-      // Extract key features from AI response
-      const features = {
-        style: this.extractStyle(response),
-        color: this.extractColor(response),
-        material: this.extractMaterial(response),
-        pattern: this.extractPattern(response),
-        category: this.extractCategory(response)
-      };
-      return features;
-    } catch (error) {
-      console.error('Error parsing AI response:', error);
-      return null;
+    
+    // Style + Type combination
+    if (keywords.style && keywords.style.length > 0 && keywords.type && keywords.type.length > 0) {
+      queries.push(`${keywords.style[0]} ${keywords.type[0]}`);
     }
+    
+    // Color + Type combination
+    if (keywords.color && keywords.color.length > 0 && keywords.type && keywords.type.length > 0) {
+      queries.push(`${keywords.color[0]} ${keywords.type[0]}`);
+    }
+    
+    // Material + Type combination
+    if (keywords.material && keywords.material.length > 0 && keywords.type && keywords.type.length > 0) {
+      queries.push(`${keywords.material[0]} ${keywords.type[0]}`);
+    }
+    
+    // Pattern + Type combination
+    if (keywords.pattern && keywords.pattern.length > 0 && keywords.type && keywords.type.length > 0) {
+      queries.push(`${keywords.pattern[0]} ${keywords.type[0]}`);
+    }
+
+    // Full description query
+    if (keywords.type && keywords.type.length > 0) {
+      const fullQuery = [
+        keywords.style?.[0],
+        keywords.color?.[0],
+        keywords.material?.[0],
+        keywords.pattern?.[0],
+        keywords.type[0]
+      ].filter(Boolean).join(' ');
+      queries.push(fullQuery);
+    }
+    
+    return queries;
   }
 
-  // Helper methods to extract specific features
-  extractStyle(response) {
-    const styleMatch = response.match(/style:?\s*([^,\.]+)/i);
-    return styleMatch ? styleMatch[1].trim() : null;
-  }
-
-  extractColor(response) {
-    const colorMatch = response.match(/color:?\s*([^,\.]+)/i);
-    return colorMatch ? colorMatch[1].trim() : null;
-  }
-
-  extractMaterial(response) {
-    const materialMatch = response.match(/material:?\s*([^,\.]+)/i);
-    return materialMatch ? materialMatch[1].trim() : null;
-  }
-
-  extractPattern(response) {
-    const patternMatch = response.match(/pattern:?\s*([^,\.]+)/i);
-    return patternMatch ? patternMatch[1].trim() : null;
-  }
-
-  extractCategory(response) {
-    const categoryMatch = response.match(/category:?\s*([^,\.]+)/i);
-    return categoryMatch ? categoryMatch[1].trim() : null;
-  }
-
-  // Find similar items based on features
-  async findSimilarItems(features, marketplaces) {
+  // Find similar items based on keywords
+  async findSimilarItems(description, marketplaces) {
     try {
-      const searchQueries = this.generateSearchQueries(features);
+      const keywords = this.extractKeywords(description);
+      if (!keywords) return [];
+
+      const searchQueries = this.generateSearchQueries(keywords);
       const results = [];
 
       for (const marketplace of marketplaces) {
@@ -98,33 +92,11 @@ class ClothingAIService {
         results.push(...marketplaceResults);
       }
 
-      return this.rankResults(results, features);
+      return this.rankResults(results, keywords);
     } catch (error) {
       console.error('Error finding similar items:', error);
       return [];
     }
-  }
-
-  // Generate search queries based on features
-  generateSearchQueries(features) {
-    const queries = [];
-    
-    // Style-based query
-    if (features.style) {
-      queries.push(features.style);
-    }
-    
-    // Category-based query
-    if (features.category) {
-      queries.push(features.category);
-    }
-    
-    // Combined feature query
-    if (features.style && features.color) {
-      queries.push(`${features.style} ${features.color}`);
-    }
-    
-    return queries;
   }
 
   // Search specific marketplace
@@ -134,46 +106,63 @@ class ClothingAIService {
     return [];
   }
 
-  // Rank results based on similarity to original item
-  rankResults(results, originalFeatures) {
+  // Rank results based on keyword matches
+  rankResults(results, keywords) {
     return results.sort((a, b) => {
-      const scoreA = this.calculateSimilarityScore(a, originalFeatures);
-      const scoreB = this.calculateSimilarityScore(b, originalFeatures);
+      const scoreA = this.calculateSimilarityScore(a, keywords);
+      const scoreB = this.calculateSimilarityScore(b, keywords);
       return scoreB - scoreA;
     });
   }
 
   // Calculate similarity score between items
-  calculateSimilarityScore(item, originalFeatures) {
+  calculateSimilarityScore(item, keywords) {
     let score = 0;
+    const itemKeywords = this.extractKeywords(item.description);
+    
+    if (!itemKeywords) return 0;
+    
+    // Type match (highest weight)
+    if (itemKeywords.type && keywords.type) {
+      const typeMatch = this.calculateCategoryMatch(itemKeywords.type, keywords.type);
+      score += typeMatch * 0.4;
+    }
     
     // Style match
-    if (item.style && originalFeatures.style) {
-      score += this.calculateStringSimilarity(item.style, originalFeatures.style);
+    if (itemKeywords.style && keywords.style) {
+      const styleMatch = this.calculateCategoryMatch(itemKeywords.style, keywords.style);
+      score += styleMatch * 0.2;
     }
     
     // Color match
-    if (item.color && originalFeatures.color) {
-      score += this.calculateStringSimilarity(item.color, originalFeatures.color);
+    if (itemKeywords.color && keywords.color) {
+      const colorMatch = this.calculateCategoryMatch(itemKeywords.color, keywords.color);
+      score += colorMatch * 0.2;
     }
     
     // Material match
-    if (item.material && originalFeatures.material) {
-      score += this.calculateStringSimilarity(item.material, originalFeatures.material);
+    if (itemKeywords.material && keywords.material) {
+      const materialMatch = this.calculateCategoryMatch(itemKeywords.material, keywords.material);
+      score += materialMatch * 0.1;
+    }
+    
+    // Pattern match
+    if (itemKeywords.pattern && keywords.pattern) {
+      const patternMatch = this.calculateCategoryMatch(itemKeywords.pattern, keywords.pattern);
+      score += patternMatch * 0.1;
     }
     
     return score;
   }
 
-  // Calculate string similarity (simple implementation)
-  calculateStringSimilarity(str1, str2) {
-    const words1 = str1.toLowerCase().split(/\s+/);
-    const words2 = str2.toLowerCase().split(/\s+/);
-    
-    const commonWords = words1.filter(word => words2.includes(word));
-    return commonWords.length / Math.max(words1.length, words2.length);
+  // Calculate match between two keyword categories
+  calculateCategoryMatch(category1, category2) {
+    const commonKeywords = category1.filter(keyword => 
+      category2.includes(keyword)
+    );
+    return commonKeywords.length / Math.max(category1.length, category2.length);
   }
 }
 
 // Export the service
-export const clothingAIService = new ClothingAIService(); 
+export const clothingService = new ClothingService(); 

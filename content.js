@@ -1,5 +1,5 @@
-// Import AI service
-import { clothingAIService } from './aiService.js';
+// Import service
+import { clothingService } from './aiService.js';
 
 // List of fast fashion websites
 const fastFashionSites = [
@@ -32,50 +32,46 @@ const extractors = {
     const title = document.querySelector('.product-name')?.textContent?.trim();
     const price = document.querySelector('.price-value')?.textContent?.trim();
     const image = document.querySelector('.product-image img')?.src;
-    return { title, price, image };
+    const description = document.querySelector('.product-description')?.textContent?.trim();
+    return { title, price, image, description };
   },
   'shein.com': () => {
     const title = document.querySelector('.product-title')?.textContent?.trim();
     const price = document.querySelector('.price')?.textContent?.trim();
     const image = document.querySelector('.product-image img')?.src;
-    return { title, price, image };
+    const description = document.querySelector('.product-description')?.textContent?.trim();
+    return { title, price, image, description };
   },
   'zara.com': () => {
     const title = document.querySelector('.product-name')?.textContent?.trim();
     const price = document.querySelector('.price')?.textContent?.trim();
     const image = document.querySelector('.product-image img')?.src;
-    return { title, price, image };
+    const description = document.querySelector('.product-description')?.textContent?.trim();
+    return { title, price, image, description };
   },
   // Add extractors for second-hand sites
   'depop.com': () => {
     const title = document.querySelector('.product-title')?.textContent?.trim();
     const price = document.querySelector('.product-price')?.textContent?.trim();
     const image = document.querySelector('.product-image img')?.src;
-    return { title, price, image };
+    const description = document.querySelector('.product-description')?.textContent?.trim();
+    return { title, price, image, description };
   },
   'poshmark.com': () => {
     const title = document.querySelector('.product-title')?.textContent?.trim();
     const price = document.querySelector('.price')?.textContent?.trim();
     const image = document.querySelector('.product-image img')?.src;
-    return { title, price, image };
+    const description = document.querySelector('.product-description')?.textContent?.trim();
+    return { title, price, image, description };
   },
   'thredup.com': () => {
     const title = document.querySelector('.product-title')?.textContent?.trim();
     const price = document.querySelector('.price')?.textContent?.trim();
     const image = document.querySelector('.product-image img')?.src;
-    return { title, price, image };
+    const description = document.querySelector('.product-description')?.textContent?.trim();
+    return { title, price, image, description };
   }
 };
-
-// Function to extract keywords from product title
-function extractKeywords(title) {
-  if (!title) return [];
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .split(/\s+/)
-    .filter(word => word.length > 2);
-}
 
 // Function to get current website and check if it's a fast fashion site
 function getCurrentWebsite() {
@@ -153,35 +149,25 @@ async function extractProductInfo() {
   const productInfo = extractors[site]();
   if (!productInfo.title) return null;
 
-  const keywords = extractKeywords(productInfo.title);
-  const searchUrls = generateSearchUrls(keywords);
-
-  // Use AI to analyze the clothing item
-  let aiFeatures = null;
-  try {
-    aiFeatures = await clothingAIService.analyzeClothing(productInfo.image, productInfo.title);
-  } catch (error) {
-    console.error('Error analyzing clothing with AI:', error);
-  }
-
-  // Find similar items using AI features
+  // Use the description to find similar items
   let similarItems = [];
-  if (aiFeatures) {
+  if (productInfo.description) {
     try {
-      similarItems = await clothingAIService.findSimilarItems(aiFeatures, secondHandSites);
+      similarItems = await clothingService.findSimilarItems(productInfo.description, secondHandSites);
     } catch (error) {
       console.error('Error finding similar items:', error);
     }
   }
 
+  // Generate search URLs based on title and description
+  const searchUrls = generateSearchUrls([productInfo.title, productInfo.description].filter(Boolean));
+
   return {
     ...productInfo,
-    keywords,
     isFastFashion,
     isSecondHand,
     searchUrls,
     currentSite: site,
-    aiFeatures,
     similarItems
   };
 }
