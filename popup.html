@@ -12,16 +12,22 @@
       display: flex;
       align-items: center;
       margin-bottom: 15px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .header img {
-      width: 24px;
-      height: 24px;
-      margin-right: 10px;
+      width: 32px;
+      height: 32px;
+      margin-right: 12px;
+      border-radius: 6px;
     }
     .header h1 {
       margin: 0;
       font-size: 20px;
       color: #333;
+      font-weight: 600;
     }
     .status {
       margin: 10px 0;
@@ -40,12 +46,19 @@
       border-radius: 4px;
       display: flex;
       align-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .result-item:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
     }
     .result-item img {
       width: 60px;
       height: 60px;
       object-fit: cover;
       margin-right: 10px;
+      border-radius: 4px;
     }
     .result-info {
       flex: 1;
@@ -53,19 +66,22 @@
     .result-title {
       font-weight: bold;
       margin-bottom: 5px;
+      color: #333;
     }
     .result-price {
       color: #666;
       margin-bottom: 5px;
+      font-size: 14px;
     }
     .result-platform {
       font-size: 12px;
       color: #888;
+      margin-bottom: 5px;
     }
     .result-score {
       font-size: 12px;
       color: #4CAF50;
-      margin-top: 5px;
+      font-weight: 500;
     }
     .debug-panel {
       margin-top: 15px;
@@ -82,6 +98,11 @@
       align-items: center;
       margin-bottom: 10px;
     }
+    .debug-header h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+    }
     .debug-controls {
       display: flex;
       gap: 10px;
@@ -93,6 +114,7 @@
       border: 1px solid #ddd;
       border-radius: 4px;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
     .debug-controls button:hover {
       background: #e0e0e0;
@@ -120,7 +142,7 @@
 </head>
 <body>
   <div class="header">
-    <img src="icon.png" alt="ReThread Icon">
+    <img src="icon(1).png" alt="ReThread Icon">
     <h1>ReThread</h1>
   </div>
 

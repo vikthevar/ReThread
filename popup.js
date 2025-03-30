@@ -1,27 +1,30 @@
 // DOM Elements
 const statusMessage = document.getElementById('statusMessage');
 const resultsContainer = document.getElementById('results');
+const debugLog = document.getElementById('debugLog');
 
 console.log('ReThread popup initialized');
 
 // Debug logging functionality
 class DebugLogger {
   constructor() {
-    this.debugContent = document.getElementById('debugContent');
-    this.clearButton = document.getElementById('clearDebug');
-    this.toggleButton = document.getElementById('toggleDebug');
+    this.debugContent = document.getElementById('debugLog');
+    this.clearButton = document.getElementById('clearLog');
+    this.toggleButton = document.getElementById('toggleLog');
     this.isVisible = true;
     
-    // Set up event listeners
-    this.clearButton.addEventListener('click', () => this.clear());
-    this.toggleButton.addEventListener('click', () => this.toggle());
+    if (this.clearButton && this.toggleButton) {
+      // Set up event listeners
+      this.clearButton.addEventListener('click', () => this.clear());
+      this.toggleButton.addEventListener('click', () => this.toggle());
+    }
   }
 
   log(message, type = 'info') {
-    if (!this.isVisible) return;
+    if (!this.isVisible || !this.debugContent) return;
     
     const entry = document.createElement('div');
-    entry.className = `debug-entry ${type}`;
+    entry.className = `log-entry log-${type}`;
     entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
     
     this.debugContent.appendChild(entry);
@@ -29,11 +32,15 @@ class DebugLogger {
   }
 
   clear() {
-    this.debugContent.innerHTML = '';
-    this.log('Debug console cleared', 'info');
+    if (this.debugContent) {
+      this.debugContent.innerHTML = '';
+      this.log('Debug console cleared', 'info');
+    }
   }
 
   toggle() {
+    if (!this.debugContent || !this.toggleButton) return;
+    
     this.isVisible = !this.isVisible;
     this.debugContent.style.display = this.isVisible ? 'block' : 'none';
     this.toggleButton.textContent = this.isVisible ? 'Hide' : 'Show';
