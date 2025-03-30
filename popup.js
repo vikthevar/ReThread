@@ -78,6 +78,29 @@ function updateResults(productInfo) {
   });
 }
 
+// Inject content scripts
+async function injectContentScripts(tabId) {
+  try {
+    // Inject aiService.js first
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['aiService.js']
+    });
+    
+    // Then inject content.js
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['content.js']
+    });
+    
+    console.log('Content scripts injected successfully');
+    return true;
+  } catch (error) {
+    console.error('Error injecting content scripts:', error);
+    return false;
+  }
+}
+
 // Get product information from active tab
 async function getProductInfo() {
   console.log('Getting product info from active tab');
@@ -92,6 +115,15 @@ async function getProductInfo() {
   console.log('Active tab:', tab);
   
   try {
+    // First, try to inject the content scripts
+    const injected = await injectContentScripts(tab.id);
+    if (!injected) {
+      throw new Error('Failed to inject content scripts');
+    }
+    
+    // Wait a short moment for the scripts to initialize
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     console.log('Sending message to content script');
     const response = await chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' });
     console.log('Received response:', response);
@@ -101,22 +133,6 @@ async function getProductInfo() {
     }
   } catch (error) {
     console.error('Error getting product info:', error);
-    if (error.message.includes('receiving end does not exist')) {
-      // Content script not ready, try to inject it
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ['aiService.js', 'content.js']
-        });
-        // Retry getting product info
-        const response = await chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' });
-        if (response && response.similarItems) {
-          return response;
-        }
-      } catch (injectionError) {
-        console.error('Error injecting content script:', injectionError);
-      }
-    }
     statusMessage.textContent = 'Error: Could not get product information. Please refresh the page and try again.';
   }
   
