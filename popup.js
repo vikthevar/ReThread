@@ -78,22 +78,48 @@ function updateResults(productInfo) {
   });
 }
 
+// Check if content scripts are already injected
+async function checkContentScripts(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      func: () => {
+        return {
+          hasAIService: typeof window.clothingService !== 'undefined',
+          hasContentScript: typeof window.rethreadInitialized !== 'undefined'
+        };
+      }
+    });
+    return result[0].result;
+  } catch (error) {
+    console.error('Error checking content scripts:', error);
+    return { hasAIService: false, hasContentScript: false };
+  }
+}
+
 // Inject content scripts
 async function injectContentScripts(tabId) {
   try {
-    // Inject aiService.js first
-    await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      files: ['aiService.js']
-    });
+    // Check if scripts are already injected
+    const { hasAIService, hasContentScript } = await checkContentScripts(tabId);
     
-    // Then inject content.js
-    await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      files: ['content.js']
-    });
+    if (!hasAIService) {
+      console.log('Injecting aiService.js');
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['aiService.js']
+      });
+    }
     
-    console.log('Content scripts injected successfully');
+    if (!hasContentScript) {
+      console.log('Injecting content.js');
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['content.js']
+      });
+    }
+    
+    console.log('Content scripts ready');
     return true;
   } catch (error) {
     console.error('Error injecting content scripts:', error);
