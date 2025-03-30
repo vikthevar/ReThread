@@ -70,7 +70,7 @@ function createResultElement(result) {
   
   // Create image element
   const img = document.createElement('img');
-  img.src = result.image || 'icon.png';
+  img.src = result.image || 'icons/icon32.png';
   img.alt = result.title;
   
   // Create result info
