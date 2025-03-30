@@ -1,3 +1,5 @@
+console.log('ReThread AI service starting...');
+
 // Clothing similarity search service
 class ClothingAIService {
   constructor() {

@@ -1,3 +1,5 @@
+console.log('ReThread content script starting...');
+
 console.log('ReThread content script loaded');
 
 // List of fast fashion websites
