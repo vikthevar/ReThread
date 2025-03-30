@@ -13,8 +13,9 @@ const fastFashionSites = [
   'abercrombie.com'
 ];
 
-// List of second-hand marketplaces
+// List of second-hand marketplaces and sustainable retailers
 const secondHandSites = [
+  // Second-hand marketplaces
   'depop.com',
   'grailed.com',
   'poshmark.com',
@@ -22,7 +23,39 @@ const secondHandSites = [
   'mercari.com',
   'vinted.com',
   'etsy.com',
-  'ebay.com'
+  'ebay.com',
+  'shopgoodwill.com',
+  'therealreal.com',
+  'vestiairecollective.com',
+  'tradesy.com',
+  'rebag.com',
+  'fashionphile.com',
+  'luxurygaragesale.com',
+  
+  // Sustainable fashion retailers
+  'reformation.com',
+  'everlane.com',
+  'patagonia.com',
+  'peopletree.com',
+  'thoughtclothing.com',
+  'amourvert.com',
+  'mata-traders.com',
+  'pactapparel.com',
+  'tentree.com',
+  'outerknown.com',
+  'kotn.com',
+  'girlfriend.com',
+  'maggiesorganics.com',
+  'organicbasics.com',
+  'ableclothing.com',
+  'christydawn.com',
+  'tamga.com',
+  'sustainableclothing.com',
+  'sustainablefashion.com',
+  'ethicalfashion.com',
+  'consciousclothing.com',
+  'ecofashion.com',
+  'sustainablemarketplace.com'
 ];
 
 // Helper function to safely get text content
