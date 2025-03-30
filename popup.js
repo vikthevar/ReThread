@@ -163,7 +163,7 @@ async function getProductInfo() {
   }
   
   //statusMessage.textContent = 'No product information found on this page';
-  //return null;
+  return null;
 }
 
 // Main function to search for alternatives
