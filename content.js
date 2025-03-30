@@ -128,72 +128,48 @@ const extractors = {
   }
 };
 
-// Function to get current website and check if it's a fast fashion site
-function getCurrentWebsite() {
-  const hostname = window.location.hostname;
-  console.log('Current hostname:', hostname);
-  const fastFashionSite = fastFashionSites.find(site => hostname.includes(site));
-  const secondHandSite = secondHandSites.find(site => hostname.includes(site));
-  
-  if (fastFashionSite) {
-    console.log('Detected fast fashion site:', fastFashionSite);
-    return {
-      site: fastFashionSite,
-      isFastFashion: true,
-      isSecondHand: false
-    };
-  } else if (secondHandSite) {
-    console.log('Detected second-hand site:', secondHandSite);
-    return {
-      site: secondHandSite,
-      isFastFashion: false,
-      isSecondHand: true
-    };
-  }
-  
-  console.log('No matching site detected');
-  return {
-    site: null,
-    isFastFashion: false,
-    isSecondHand: false
-  };
-}
-
-// Main function to extract product information and find similar items
+// Main function to extract product information
 async function extractProductInfo() {
-  console.log('Starting product info extraction');
-  const { site, isFastFashion, isSecondHand } = getCurrentWebsite();
-  if (!site || !extractors[site]) {
-    console.log('No extractor found for site:', site);
-    return null;
-  }
-
-  const productInfo = extractors[site]();
-  if (!productInfo.title) {
-    console.log('No product title found');
-    return null;
-  }
-
-  console.log('Found product info:', productInfo);
-
-  // Use both title and description to find similar items
-  let similarItems = [];
-  try {
-    console.log('Finding similar items...');
-    const searchText = [productInfo.title, productInfo.description].filter(Boolean).join(' ');
-    similarItems = await clothingService.findSimilarItems(searchText, secondHandSites);
-    console.log('Found similar items:', similarItems);
-  } catch (error) {
-    console.error('Error finding similar items:', error);
-  }
-
-  return {
-    ...productInfo,
-    isFastFashion,
-    isSecondHand,
-    currentSite: site,
-    similarItems
+  console.log('Extracting product information...');
+  
+  // Determine current website and whether it's fast fashion
+  const currentSite = window.location.hostname;
+  const isFastFashion = fastFashionSites.some(site => currentSite.includes(site));
+  const isSecondHand = secondHandSites.some(site => currentSite.includes(site));
+  
+  console.log('Current site:', currentSite);
+  console.log('Is fast fashion:', isFastFashion);
+  console.log('Is second hand:', isSecondHand);
+  
+  // Get the appropriate extractor
+  const extractor = extractors[currentSite] || extractors.default;
+  
+  // Extract product information
+  const productInfo = {
+    title: extractor.title(),
+    price: extractor.price(),
+    image: extractor.image(),
+    description: extractor.description(),
+    isFastFashion: isFastFashion
   };
+  
+  console.log('Extracted product info:', productInfo);
+  
+  // If we have product information, find similar items
+  if (productInfo.title && productInfo.description) {
+    console.log('Finding similar items...');
+    const searchText = `${productInfo.title} ${productInfo.description}`;
+    const similarItems = await clothingService.findSimilarItems(searchText, productInfo.image, secondHandSites);
+    console.log('Found similar items:', similarItems);
+    
+    return {
+      ...productInfo,
+      similarItems: similarItems || []
+    };
+  }
+  
+  console.log('No product information found');
+  return null;
 }
 
 // Listen for messages from the popup

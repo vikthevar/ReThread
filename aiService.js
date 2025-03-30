@@ -1,6 +1,10 @@
 // Clothing similarity search service
 class ClothingAIService {
   constructor() {
+    // Google Cloud Vision API configuration
+    this.apiKey = 'AIzaSyBGA4LuZ5FxSgLTiiGfp3na41oekTDAf48'; // Will be set manually
+    this.apiEndpoint = 'https://vision.googleapis.com/v1/images:annotate';
+    
     // Keywords for different aspects of clothing
     this.keywords = {
       style: [
@@ -85,6 +89,138 @@ class ClothingAIService {
     };
   }
 
+  // Set API key
+  setApiKey(key) {
+    this.apiKey = key;
+    console.log('API key set');
+  }
+
+  // Convert image URL to base64
+  async imageUrlToBase64(imageUrl) {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result.split(',')[1];
+          resolve(base64data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error converting image to base64:', error);
+      throw error;
+    }
+  }
+
+  // Analyze image using Google Cloud Vision API
+  async analyzeImage(imageUrl) {
+    if (!this.apiKey) {
+      throw new Error('API key not set');
+    }
+
+    try {
+      const base64Image = await this.imageUrlToBase64(imageUrl);
+      
+      const requestBody = {
+        requests: [{
+          image: {
+            content: base64Image
+          },
+          features: [
+            {
+              type: 'LABEL_DETECTION',
+              maxResults: 10
+            },
+            {
+              type: 'OBJECT_LOCALIZATION',
+              maxResults: 10
+            },
+            {
+              type: 'WEB_DETECTION',
+              maxResults: 10
+            }
+          ]
+        }]
+      };
+
+      const response = await fetch(`${this.apiEndpoint}?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.responses[0];
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      throw error;
+    }
+  }
+
+  // Find similar items based on image and description
+  async findSimilarItems(description, imageUrl, targetSites) {
+    console.log('Finding similar items for:', { description, imageUrl });
+    
+    try {
+      // Analyze image using Google Cloud Vision API
+      const analysis = await this.analyzeImage(imageUrl);
+      
+      // Extract keywords from description
+      const keywords = this.extractKeywords(description);
+      
+      // Get web detection results
+      const webDetection = analysis.webDetection;
+      const visuallySimilarImages = webDetection.visuallySimilarImages || [];
+      
+      // Generate search results
+      const similarItems = visuallySimilarImages.map(image => {
+        const url = image.url;
+        const site = this.getSiteFromUrl(url);
+        
+        // Calculate similarity score based on both visual similarity and keyword matches
+        const visualScore = image.score || 0;
+        const keywordScore = this.calculateSimilarityScore(keywords);
+        const combinedScore = (visualScore + keywordScore) / 2;
+        
+        return {
+          title: `Similar item on ${site}`,
+          price: 'Varies',
+          platform: site,
+          url: url,
+          image: url,
+          similarityScore: combinedScore
+        };
+      });
+
+      // Sort by similarity score and return top 5
+      return similarItems
+        .sort((a, b) => b.similarityScore - a.similarityScore)
+        .slice(0, 5);
+    } catch (error) {
+      console.error('Error finding similar items:', error);
+      throw error;
+    }
+  }
+
+  // Extract site from URL
+  getSiteFromUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.replace('www.', '');
+    } catch (error) {
+      return 'unknown';
+    }
+  }
+
   // Extract keywords from text
   extractKeywords(text) {
     console.log('Extracting keywords from text:', text);
@@ -122,190 +258,6 @@ class ClothingAIService {
 
     console.log('Found keywords:', foundKeywords);
     return foundKeywords;
-  }
-
-  // Generate search query from keywords
-  generateSearchQuery(keywords) {
-    console.log('Generating search query from keywords:', keywords);
-    const queryParts = [];
-    
-    // Add type first (most important)
-    if (keywords.type.length > 0) {
-      queryParts.push(keywords.type[0]);
-    }
-    
-    // Add color if available
-    if (keywords.color.length > 0) {
-      queryParts.push(keywords.color[0]);
-    }
-    
-    // Add style if available
-    if (keywords.style.length > 0) {
-      queryParts.push(keywords.style[0]);
-    }
-    
-    // Add material if available
-    if (keywords.material.length > 0) {
-      queryParts.push(keywords.material[0]);
-    }
-    
-    // Add pattern if available
-    if (keywords.pattern.length > 0) {
-      queryParts.push(keywords.pattern[0]);
-    }
-
-    // If we have a type, create variations
-    if (keywords.type.length > 0) {
-      const type = keywords.type[0];
-      
-      // Add color + type combination
-      if (keywords.color.length > 0) {
-        queryParts.push(`${keywords.color[0]} ${type}`);
-      }
-      
-      // Add style + type combination
-      if (keywords.style.length > 0) {
-        queryParts.push(`${keywords.style[0]} ${type}`);
-      }
-      
-      // Add material + type combination
-      if (keywords.material.length > 0) {
-        queryParts.push(`${keywords.material[0]} ${type}`);
-      }
-    }
-
-    const query = queryParts.join(' ');
-    console.log('Generated search query:', query);
-    return query;
-  }
-
-  // Find similar items based on description
-  async findSimilarItems(description, targetSites) {
-    console.log('Finding similar items for description:', description);
-    
-    // Extract keywords from the description
-    const keywords = this.extractKeywords(description);
-    console.log('Extracted keywords:', keywords);
-    
-    // Generate search query
-    const searchQuery = this.generateSearchQuery(keywords);
-    console.log('Generated search query:', searchQuery);
-
-    // Generate URLs and fetch results for each target site
-    const searchPromises = targetSites.map(async site => {
-      try {
-        console.log('Searching site:', site);
-        // Create a clean domain name
-        const cleanDomain = site.replace(/^www\./, '');
-        
-        // Try different common search URL patterns
-        const searchPatterns = [
-          `https://www.${cleanDomain}/search?q=`,
-          `https://www.${cleanDomain}/search?query=`,
-          `https://www.${cleanDomain}/search?search=`,
-          `https://www.${cleanDomain}/search?search_term=`,
-          `https://www.${cleanDomain}/search?keyword=`,
-          `https://www.${cleanDomain}/catalog?q=`,
-          `https://www.${cleanDomain}/products?q=`,
-          `https://www.${cleanDomain}/shop?q=`,
-          `https://www.${cleanDomain}/collections/all?q=`,
-          `https://www.${cleanDomain}/all?q=`
-        ];
-
-        // Try each search pattern until we get results
-        for (const pattern of searchPatterns) {
-          const url = pattern + encodeURIComponent(searchQuery);
-          console.log('Trying URL:', url);
-          
-          try {
-            // Use XMLHttpRequest instead of fetch to avoid CORS issues
-            const response = await new Promise((resolve, reject) => {
-              const xhr = new XMLHttpRequest();
-              xhr.open('GET', url, true);
-              xhr.onload = () => {
-                if (xhr.status === 200) {
-                  resolve(xhr.responseText);
-                } else {
-                  reject(new Error(`HTTP Error: ${xhr.status}`));
-                }
-              };
-              xhr.onerror = () => reject(new Error('Network Error'));
-              xhr.send();
-            });
-
-            console.log('Got response from:', url);
-            
-            // Parse the HTML to extract product information
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(response, 'text/html');
-            
-            // Get site-specific selectors or use defaults
-            const selectors = this.siteSelectors[cleanDomain] || this.siteSelectors.default;
-            
-            // Look for product elements using site-specific selectors
-            const productElements = doc.querySelectorAll(selectors.products);
-            console.log(`Found ${productElements.length} products on ${site}`);
-            
-            if (productElements.length > 0) {
-              // Extract product information from the first few results
-              const products = Array.from(productElements).slice(0, 3).map(element => {
-                const title = element.querySelector(selectors.title)?.textContent?.trim() || 'N/A';
-                const price = element.querySelector(selectors.price)?.textContent?.trim() || 'N/A';
-                const image = element.querySelector(selectors.image)?.src || '';
-                
-                return {
-                  title,
-                  price,
-                  image,
-                  url: element.querySelector('a')?.href || url,
-                  platform: site
-                };
-              });
-
-              return products;
-            }
-          } catch (error) {
-            console.log('Error fetching from pattern:', pattern, error);
-            continue;
-          }
-        }
-        
-        // If no results found, return a default item
-        console.log('No results found for site:', site);
-        return [{
-          title: `Search results on ${site}`,
-          price: 'Varies',
-          platform: site,
-          url: `https://www.${cleanDomain}/search?q=${encodeURIComponent(searchQuery)}`,
-          similarityScore: this.calculateSimilarityScore(keywords)
-        }];
-      } catch (error) {
-        console.error('Error searching site:', site, error);
-        return null;
-      }
-    });
-
-    // Wait for all searches to complete
-    const results = await Promise.all(searchPromises);
-    
-    // Flatten results and filter out nulls
-    const allResults = results
-      .filter(result => result !== null)
-      .flat()
-      .map(result => ({
-        ...result,
-        similarityScore: this.calculateSimilarityScore(keywords)
-      }));
-
-    console.log('Total results found:', allResults.length);
-    
-    // Sort by similarity score and return top 5
-    const finalResults = allResults
-      .sort((a, b) => b.similarityScore - a.similarityScore)
-      .slice(0, 5);
-
-    console.log('Final results:', finalResults);
-    return finalResults;
   }
 
   // Calculate similarity score based on keyword matches
