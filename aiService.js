@@ -173,31 +173,27 @@ class ClothingAIService {
   // Calculate similarity score based on keyword matches
   calculateSimilarityScore(keywords) {
     let score = 0;
-    let totalKeywords = 0;
-
-    // Weight different aspects of the match
+    
+    // Only consider type and color matches
     const weights = {
-      type: 0.3,    // Type of clothing (reduced weight)
-      style: 0.2,   // Style category
-      color: 0.2,   // Color matching
-      material: 0.15, // Material type
-      pattern: 0.15  // Pattern matching
+      type: 0.6,    // Type of clothing (most important)
+      color: 0.4    // Color matching
     };
 
-    Object.entries(keywords).forEach(([category, categoryKeywords]) => {
-      if (categoryKeywords.length > 0) {
-        // More lenient scoring
-        score += weights[category] * (categoryKeywords.length / Math.max(1, this.keywords[category].length));
-      }
-      totalKeywords += this.keywords[category].length;
-    });
+    // Check for type match
+    if (keywords.type.length > 0) {
+      score += weights.type;
+    }
 
-    // Boost score if we have multiple matches in any category
-    Object.values(keywords).forEach(categoryKeywords => {
-      if (categoryKeywords.length > 1) {
-        score += 0.1;
-      }
-    });
+    // Check for color match
+    if (keywords.color.length > 0) {
+      score += weights.color;
+    }
+
+    // Boost score if we have both type and color matches
+    if (keywords.type.length > 0 && keywords.color.length > 0) {
+      score += 0.2;
+    }
 
     return Math.min(1, score); // Cap at 1
   }
