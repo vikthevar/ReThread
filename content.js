@@ -17,6 +17,7 @@ const fastFashionSites = [
 
 // List of second-hand marketplaces and sustainable retailers
 const secondHandSites = [
+  // Second-hand marketplaces
   'depop.com',
   'grailed.com',
   'poshmark.com',
@@ -32,6 +33,8 @@ const secondHandSites = [
   'rebag.com',
   'fashionphile.com',
   'luxurygaragesale.com',
+  
+  // Sustainable fashion retailers
   'reformation.com',
   'everlane.com',
   'patagonia.com',
@@ -48,7 +51,13 @@ const secondHandSites = [
   'organicbasics.com',
   'ableclothing.com',
   'christydawn.com',
-  'tamga.com'
+  'tamga.com',
+  'sustainableclothing.com',
+  'sustainablefashion.com',
+  'ethicalfashion.com',
+  'consciousclothing.com',
+  'ecofashion.com',
+  'sustainablemarketplace.com'
 ];
 
 // Helper function to safely get text content
@@ -133,6 +142,7 @@ function getCurrentWebsite() {
 
 // Main function to extract product information
 async function extractProductInfo() {
+  console.log('Extracting product info...');
   const currentUrl = window.location.href;
   
   try {
@@ -144,6 +154,7 @@ async function extractProductInfo() {
     const product = Object.values(mappings.products).find(p => p.hm_url === currentUrl);
     
     if (product) {
+      console.log('Found matching product:', product);
       return {
         title: product.alternatives[0].title,
         price: product.alternatives[0].price,
@@ -159,8 +170,10 @@ async function extractProductInfo() {
       };
     }
     
+    console.log('No matching product found');
     return null;
   } catch (error) {
+    console.error('Error extracting product info:', error);
     return null;
   }
 }
@@ -168,12 +181,15 @@ async function extractProductInfo() {
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getProductInfo') {
+    console.log('Received getProductInfo request');
     extractProductInfo().then(productInfo => {
+      console.log('Sending product info:', productInfo);
       sendResponse({
         success: true,
         productInfo: productInfo
       });
     }).catch(error => {
+      console.error('Error:', error);
       sendResponse({
         success: false,
         error: error.message
