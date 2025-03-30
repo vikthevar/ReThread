@@ -55,7 +55,30 @@
         "*://*.etsy.com/*",
         "*://*.ebay.com/*"
       ],
-      "js": ["aiService.js", "content.js"],
+      "js": ["aiService.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "*://*.hm.com/*",
+        "*://*.shein.com/*",
+        "*://*.zara.com/*",
+        "*://*.fashionnova.com/*",
+        "*://*.forever21.com/*",
+        "*://*.uniqlo.com/*",
+        "*://*.gap.com/*",
+        "*://*.hollister.com/*",
+        "*://*.abercrombie.com/*",
+        "*://*.depop.com/*",
+        "*://*.grailed.com/*",
+        "*://*.poshmark.com/*",
+        "*://*.thredup.com/*",
+        "*://*.mercari.com/*",
+        "*://*.vinted.com/*",
+        "*://*.etsy.com/*",
+        "*://*.ebay.com/*"
+      ],
+      "js": ["content.js"],
       "run_at": "document_end"
     }
   ],

@@ -1,6 +1,3 @@
-// Import service
-import { clothingService } from './aiService.js';
-
 console.log('ReThread content script loaded');
 
 // List of fast fashion websites
