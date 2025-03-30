@@ -39,28 +39,8 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.hm.com/*",
-        "*://*.shein.com/*",
-        "*://*.zara.com/*",
-        "*://*.depop.com/*",
-        "*://*.grailed.com/*",
-        "*://*.poshmark.com/*",
-        "*://*.thredup.com/*",
-        "*://*.mercari.com/*",
-        "*://*.vinted.com/*",
-        "*://*.etsy.com/*",
-        "*://*.ebay.com/*",
-        "*://*.asos.com/*",
-        "*://*.fashionnova.com/*",
-        "*://*.forever21.com/*",
-        "*://*.urbanoutfitters.com/*",
-        "*://*.nordstrom.com/*",
-        "*://*.macy.com/*",
-        "*://*.uniqlo.com/*",
-        "*://*.gap.com/*",
-        "*://*.zara.com/*",
-        "*://*.hollister.com/*",
-        "*://*.abercrombie.com/*"
+   
+        "<all_urls>"
       ],
       "js": ["content.js"]
     }
