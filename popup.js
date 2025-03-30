@@ -4,6 +4,7 @@ const resultsContainer = document.getElementById('results-container');
 const depopToggle = document.getElementById('depop-toggle');
 const grailedToggle = document.getElementById('grailed-toggle');
 const poshmarkToggle = document.getElementById('poshmark-toggle');
+const aiResultsContainer = document.getElementById('ai-results-container');
 
 // Load settings from storage
 async function loadSettings() {
@@ -40,9 +41,31 @@ function createResultElement(result) {
   return div;
 }
 
+// Create AI result item element
+function createAIResultElement(item) {
+  const div = document.createElement('div');
+  div.className = 'ai-result-item';
+  div.innerHTML = `
+    <img class="result-image" src="${item.image}" alt="${item.title}">
+    <div class="result-info">
+      <div class="result-title">${item.title}</div>
+      <div class="result-price">${item.price}</div>
+      <div class="result-platform">${item.platform}</div>
+      <div class="similarity-score">Similarity: ${Math.round(item.similarityScore * 100)}%</div>
+    </div>
+  `;
+  
+  div.addEventListener('click', () => {
+    chrome.tabs.create({ url: item.url });
+  });
+  
+  return div;
+}
+
 // Update results display
 function updateResults(productInfo) {
   resultsContainer.innerHTML = '';
+  aiResultsContainer.innerHTML = '';
   
   if (!productInfo || !productInfo.searchUrls || productInfo.searchUrls.length === 0) {
     statusMessage.textContent = 'No product information found on this page';
@@ -66,6 +89,7 @@ function updateResults(productInfo) {
     return;
   }
 
+  // Display keyword-based search results
   statusMessage.textContent = productInfo.isFastFashion 
     ? 'Found sustainable alternatives on second-hand marketplaces'
     : 'Found similar items on other marketplaces';
@@ -73,6 +97,17 @@ function updateResults(productInfo) {
   filteredUrls.forEach(result => {
     resultsContainer.appendChild(createResultElement(result));
   });
+
+  // Display AI-powered similar items if available
+  if (productInfo.similarItems && productInfo.similarItems.length > 0) {
+    const aiHeader = document.createElement('h3');
+    aiHeader.textContent = 'AI-Powered Similar Items';
+    aiResultsContainer.appendChild(aiHeader);
+
+    productInfo.similarItems.forEach(item => {
+      aiResultsContainer.appendChild(createAIResultElement(item));
+    });
+  }
 }
 
 // Get product information from active tab

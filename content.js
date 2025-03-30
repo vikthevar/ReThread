@@ -1,3 +1,6 @@
+// Import AI service
+import { clothingAIService } from './aiService.js';
+
 // List of fast fashion websites
 const fastFashionSites = [
   'hm.com',
@@ -142,8 +145,8 @@ function generateSearchUrls(keywords) {
   });
 }
 
-// Main function to extract product information
-function extractProductInfo() {
+// Main function to extract product information and find similar items
+async function extractProductInfo() {
   const { site, isFastFashion, isSecondHand } = getCurrentWebsite();
   if (!site || !extractors[site]) return null;
 
@@ -151,9 +154,25 @@ function extractProductInfo() {
   if (!productInfo.title) return null;
 
   const keywords = extractKeywords(productInfo.title);
-  
-  // Generate search URLs for both fast fashion and second-hand sites
   const searchUrls = generateSearchUrls(keywords);
+
+  // Use AI to analyze the clothing item
+  let aiFeatures = null;
+  try {
+    aiFeatures = await clothingAIService.analyzeClothing(productInfo.image, productInfo.title);
+  } catch (error) {
+    console.error('Error analyzing clothing with AI:', error);
+  }
+
+  // Find similar items using AI features
+  let similarItems = [];
+  if (aiFeatures) {
+    try {
+      similarItems = await clothingAIService.findSimilarItems(aiFeatures, secondHandSites);
+    } catch (error) {
+      console.error('Error finding similar items:', error);
+    }
+  }
 
   return {
     ...productInfo,
@@ -161,15 +180,19 @@ function extractProductInfo() {
     isFastFashion,
     isSecondHand,
     searchUrls,
-    currentSite: site
+    currentSite: site,
+    aiFeatures,
+    similarItems
   };
 }
 
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getProductInfo') {
-    const productInfo = extractProductInfo();
-    sendResponse(productInfo);
+    extractProductInfo().then(productInfo => {
+      sendResponse(productInfo);
+    });
+    return true; // Required for async response
   }
 });
 
@@ -178,13 +201,14 @@ const observer = new MutationObserver((mutations) => {
   const { site, isFastFashion, isSecondHand } = getCurrentWebsite();
   if (!site) return;
 
-  const productInfo = extractProductInfo();
-  if (productInfo) {
-    chrome.runtime.sendMessage({
-      action: 'productInfoUpdated',
-      productInfo
-    });
-  }
+  extractProductInfo().then(productInfo => {
+    if (productInfo) {
+      chrome.runtime.sendMessage({
+        action: 'productInfoUpdated',
+        productInfo
+      });
+    }
+  });
 });
 
 observer.observe(document.body, {
