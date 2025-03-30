@@ -7,37 +7,87 @@ class ClothingAIService {
         'casual', 'formal', 'business', 'streetwear', 'athletic', 'bohemian',
         'vintage', 'minimalist', 'preppy', 'punk', 'gothic', 'artistic',
         'classic', 'modern', 'retro', 'sporty', 'elegant', 'chic',
-        'urban', 'rural', 'beach', 'party', 'workout', 'lounge'
+        'urban', 'rural', 'beach', 'party', 'workout', 'lounge',
+        'plain', 'basic', 'simple', 'essential', 'everyday', 'versatile',
+        'timeless', 'traditional', 'contemporary', 'relaxed', 'fitted',
+        'oversized', 'slim', 'loose', 'cropped', 'long', 'short'
       ],
       type: [
         'dress', 'shirt', 'pants', 'jacket', 'coat', 'sweater', 'hoodie',
         'skirt', 'shorts', 'blazer', 'cardigan', 't-shirt', 'jeans',
         'top', 'blouse', 'sweatshirt', 'jumpsuit', 'romper', 'vest',
-        'sweatpants', 'leggings', 'tank', 'tank top', 'crop top', 'bodysuit'
+        'sweatpants', 'leggings', 'tank', 'tank top', 'crop top', 'bodysuit',
+        'tee', 'tshirt', 't shirt', 'tee shirt', 'teeshirt', 't-shirt',
+        'basic tee', 'basic t-shirt', 'essential tee', 'essential t-shirt'
       ],
       material: [
         'cotton', 'wool', 'silk', 'denim', 'leather', 'polyester', 'linen',
         'cashmere', 'velvet', 'suede', 'mesh', 'knit', 'fleece',
         'rayon', 'spandex', 'nylon', 'chiffon', 'satin', 'jersey',
-        'flannel', 'corduroy', 'canvas', 'tweed', 'lace', 'sequin'
+        'flannel', 'corduroy', 'canvas', 'tweed', 'lace', 'sequin',
+        'organic cotton', 'recycled cotton', 'bamboo', 'modal', 'lyocell',
+        'recycled polyester', 'recycled materials', 'sustainable materials'
       ],
       color: [
         'black', 'white', 'red', 'blue', 'green', 'yellow', 'purple',
         'pink', 'brown', 'gray', 'navy', 'beige', 'cream',
         'orange', 'burgundy', 'maroon', 'teal', 'turquoise', 'lavender',
-        'khaki', 'olive', 'tan', 'gold', 'silver', 'bronze'
+        'khaki', 'olive', 'tan', 'gold', 'silver', 'bronze',
+        'charcoal', 'dark', 'light', 'neutral', 'monochrome', 'solid'
       ],
       pattern: [
         'solid', 'striped', 'floral', 'plaid', 'polka dot', 'checkered',
         'animal print', 'camouflage', 'geometric', 'abstract', 'tie dye',
         'leopard', 'zebra', 'snake', 'houndstooth', 'herringbone', 'argyle',
-        'chevron', 'paisley', 'giraffe', 'tropical', 'tribal', 'military'
+        'chevron', 'paisley', 'giraffe', 'tropical', 'tribal', 'military',
+        'plain', 'basic', 'simple', 'clean', 'minimal', 'none'
       ]
+    };
+
+    // Site-specific selectors for product information
+    this.siteSelectors = {
+      'depop.com': {
+        products: '.product-card',
+        title: '.product-title',
+        price: '.product-price',
+        image: '.product-image img'
+      },
+      'poshmark.com': {
+        products: '.tile',
+        title: '.tile__title',
+        price: '.tile__price',
+        image: '.tile__image img'
+      },
+      'thredup.com': {
+        products: '.product-card',
+        title: '.product-title',
+        price: '.product-price',
+        image: '.product-image img'
+      },
+      'etsy.com': {
+        products: '.v2-listing-card',
+        title: '.v2-listing-card__title',
+        price: '.currency-value',
+        image: '.wt-width-full'
+      },
+      'ebay.com': {
+        products: '.s-item',
+        title: '.s-item__title',
+        price: '.s-item__price',
+        image: '.s-item__image-img'
+      },
+      'default': {
+        products: '.product, .item, .listing, .card, article, .product-card, .product-item, .product-grid-item, .product-tile, .product-listing',
+        title: 'h1, h2, h3, .title, .name, .product-title, .item-title, .listing-title',
+        price: '.price, .amount, [data-price], .product-price, .item-price, .listing-price',
+        image: 'img, .product-image img, .item-image img, .listing-image img'
+      }
     };
   }
 
   // Extract keywords from text
   extractKeywords(text) {
+    console.log('Extracting keywords from text:', text);
     const words = text.toLowerCase().split(/\s+/);
     const foundKeywords = {
       style: [],
@@ -56,11 +106,27 @@ class ClothingAIService {
       });
     });
 
+    // If no keywords found, try to infer from common patterns
+    if (Object.values(foundKeywords).every(arr => arr.length === 0)) {
+      console.log('No keywords found, trying to infer...');
+      if (text.toLowerCase().includes('t-shirt') || text.toLowerCase().includes('tee')) {
+        foundKeywords.type.push('t-shirt');
+      }
+      if (text.toLowerCase().includes('black')) {
+        foundKeywords.color.push('black');
+      }
+      if (text.toLowerCase().includes('plain') || text.toLowerCase().includes('basic')) {
+        foundKeywords.pattern.push('solid');
+      }
+    }
+
+    console.log('Found keywords:', foundKeywords);
     return foundKeywords;
   }
 
   // Generate search query from keywords
   generateSearchQuery(keywords) {
+    console.log('Generating search query from keywords:', keywords);
     const queryParts = [];
     
     // Add type first (most important)
@@ -68,14 +134,14 @@ class ClothingAIService {
       queryParts.push(keywords.type[0]);
     }
     
-    // Add style if available
-    if (keywords.style.length > 0) {
-      queryParts.push(keywords.style[0]);
-    }
-    
     // Add color if available
     if (keywords.color.length > 0) {
       queryParts.push(keywords.color[0]);
+    }
+    
+    // Add style if available
+    if (keywords.style.length > 0) {
+      queryParts.push(keywords.style[0]);
     }
     
     // Add material if available
@@ -92,14 +158,14 @@ class ClothingAIService {
     if (keywords.type.length > 0) {
       const type = keywords.type[0];
       
-      // Add style + type combination
-      if (keywords.style.length > 0) {
-        queryParts.push(`${keywords.style[0]} ${type}`);
-      }
-      
       // Add color + type combination
       if (keywords.color.length > 0) {
         queryParts.push(`${keywords.color[0]} ${type}`);
+      }
+      
+      // Add style + type combination
+      if (keywords.style.length > 0) {
+        queryParts.push(`${keywords.style[0]} ${type}`);
       }
       
       // Add material + type combination
@@ -108,7 +174,9 @@ class ClothingAIService {
       }
     }
 
-    return queryParts.join(' ');
+    const query = queryParts.join(' ');
+    console.log('Generated search query:', query);
+    return query;
   }
 
   // Find similar items based on description
@@ -126,6 +194,7 @@ class ClothingAIService {
     // Generate URLs and fetch results for each target site
     const searchPromises = targetSites.map(async site => {
       try {
+        console.log('Searching site:', site);
         // Create a clean domain name
         const cleanDomain = site.replace(/^www\./, '');
         
@@ -149,44 +218,51 @@ class ClothingAIService {
           console.log('Trying URL:', url);
           
           try {
-            const response = await fetch(url, {
-              method: 'GET',
-              headers: {
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-              },
-              mode: 'cors'
+            // Use XMLHttpRequest instead of fetch to avoid CORS issues
+            const response = await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              xhr.open('GET', url, true);
+              xhr.onload = () => {
+                if (xhr.status === 200) {
+                  resolve(xhr.responseText);
+                } else {
+                  reject(new Error(`HTTP Error: ${xhr.status}`));
+                }
+              };
+              xhr.onerror = () => reject(new Error('Network Error'));
+              xhr.send();
             });
 
-            if (response.ok) {
-              const html = await response.text();
-              console.log('Got response from:', url);
-              
-              // Parse the HTML to extract product information
-              const parser = new DOMParser();
-              const doc = parser.parseFromString(html, 'text/html');
-              
-              // Look for product elements (this will need to be customized per site)
-              const productElements = doc.querySelectorAll('.product, .item, .listing, .card, article');
-              
-              if (productElements.length > 0) {
-                // Extract product information from the first few results
-                const products = Array.from(productElements).slice(0, 3).map(element => {
-                  const title = element.querySelector('h1, h2, h3, .title, .name')?.textContent?.trim() || 'N/A';
-                  const price = element.querySelector('.price, .amount, [data-price]')?.textContent?.trim() || 'N/A';
-                  const image = element.querySelector('img')?.src || '';
-                  
-                  return {
-                    title,
-                    price,
-                    image,
-                    url: element.querySelector('a')?.href || url,
-                    platform: site
-                  };
-                });
+            console.log('Got response from:', url);
+            
+            // Parse the HTML to extract product information
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(response, 'text/html');
+            
+            // Get site-specific selectors or use defaults
+            const selectors = this.siteSelectors[cleanDomain] || this.siteSelectors.default;
+            
+            // Look for product elements using site-specific selectors
+            const productElements = doc.querySelectorAll(selectors.products);
+            console.log(`Found ${productElements.length} products on ${site}`);
+            
+            if (productElements.length > 0) {
+              // Extract product information from the first few results
+              const products = Array.from(productElements).slice(0, 3).map(element => {
+                const title = element.querySelector(selectors.title)?.textContent?.trim() || 'N/A';
+                const price = element.querySelector(selectors.price)?.textContent?.trim() || 'N/A';
+                const image = element.querySelector(selectors.image)?.src || '';
+                
+                return {
+                  title,
+                  price,
+                  image,
+                  url: element.querySelector('a')?.href || url,
+                  platform: site
+                };
+              });
 
-                return products;
-              }
+              return products;
             }
           } catch (error) {
             console.log('Error fetching from pattern:', pattern, error);
@@ -195,6 +271,7 @@ class ClothingAIService {
         }
         
         // If no results found, return a default item
+        console.log('No results found for site:', site);
         return [{
           title: `Search results on ${site}`,
           price: 'Varies',
@@ -220,14 +297,20 @@ class ClothingAIService {
         similarityScore: this.calculateSimilarityScore(keywords)
       }));
 
+    console.log('Total results found:', allResults.length);
+    
     // Sort by similarity score and return top 5
-    return allResults
+    const finalResults = allResults
       .sort((a, b) => b.similarityScore - a.similarityScore)
       .slice(0, 5);
+
+    console.log('Final results:', finalResults);
+    return finalResults;
   }
 
   // Calculate similarity score based on keyword matches
   calculateSimilarityScore(keywords) {
+    console.log('Calculating similarity score for keywords:', keywords);
     let score = 0;
     
     // Only consider type and color matches
@@ -239,19 +322,24 @@ class ClothingAIService {
     // Check for type match
     if (keywords.type.length > 0) {
       score += weights.type;
+      console.log('Type match found, adding:', weights.type);
     }
 
     // Check for color match
     if (keywords.color.length > 0) {
       score += weights.color;
+      console.log('Color match found, adding:', weights.color);
     }
 
     // Boost score if we have both type and color matches
     if (keywords.type.length > 0 && keywords.color.length > 0) {
       score += 0.2;
+      console.log('Both type and color match found, adding boost:', 0.2);
     }
 
-    return Math.min(1, score); // Cap at 1
+    const finalScore = Math.min(1, score);
+    console.log('Final similarity score:', finalScore);
+    return finalScore;
   }
 }
 
