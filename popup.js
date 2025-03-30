@@ -1,279 +1,173 @@
-// DOM Elements
-const statusMessage = document.getElementById('statusMessage');
+// Get DOM elements
 const resultsContainer = document.getElementById('results');
+const statusMessage = document.getElementById('status');
+const clearButton = document.getElementById('clearLogs');
+const toggleButton = document.getElementById('toggleLogs');
+const debugPanel = document.getElementById('debugPanel');
 const debugLog = document.getElementById('debugLog');
 
-console.log('ReThread popup initialized');
+// List of supported fast fashion websites
+const supportedSites = [
+  'hm.com',
+  'shein.com',
+  'zara.com',
+  'fashionnova.com',
+  'forever21.com',
+  'uniqlo.com',
+  'gap.com',
+  'hollister.com',
+  'abercrombie.com'
+];
 
-// Debug logging functionality
-class DebugLogger {
-  constructor() {
-    this.debugContent = document.getElementById('debugLog');
-    this.clearButton = document.getElementById('clearLog');
-    this.toggleButton = document.getElementById('toggleLog');
-    this.isVisible = true;
-    
-    if (this.clearButton && this.toggleButton) {
-      // Set up event listeners
-      this.clearButton.addEventListener('click', () => this.clear());
-      this.toggleButton.addEventListener('click', () => this.toggle());
-    }
-  }
-
-  log(message, type = 'info') {
-    if (!this.isVisible || !this.debugContent) return;
-    
-    const entry = document.createElement('div');
-    entry.className = `log-entry log-${type}`;
-    entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-    
-    this.debugContent.appendChild(entry);
-    this.debugContent.scrollTop = this.debugContent.scrollHeight;
-  }
-
-  clear() {
-    if (this.debugContent) {
-      this.debugContent.innerHTML = '';
-      this.log('Debug console cleared', 'info');
-    }
-  }
-
-  toggle() {
-    if (!this.debugContent || !this.toggleButton) return;
-    
-    this.isVisible = !this.isVisible;
-    this.debugContent.style.display = this.isVisible ? 'block' : 'none';
-    this.toggleButton.textContent = this.isVisible ? 'Hide' : 'Show';
-  }
-}
-
-// Initialize debug logger
-const debug = new DebugLogger();
-
-// Helper function to extract text content
-function extractText(element, selector) {
-  const found = element.querySelector(selector);
-  return found ? found.textContent.trim() : '';
-}
-
-// Helper function to extract attribute
-function extractAttribute(element, selector, attribute) {
-  const found = element.querySelector(selector);
-  return found ? found.getAttribute(attribute) : '';
-}
-
-// Create result item element
-function createResultElement(result) {
-  debug.log(`Creating result element for: ${result.title}`, 'info');
-  const div = document.createElement('div');
-  div.className = 'result-item';
-  
-  // Create image element
-  const img = document.createElement('img');
-  img.src = result.image || 'icon.png';
-  img.alt = result.title;
-  
-  // Create result info
-  const info = document.createElement('div');
-  info.className = 'result-info';
-  
-  // Create title
-  const title = document.createElement('div');
-  title.className = 'result-title';
-  title.textContent = result.title;
-  
-  // Create price
-  const price = document.createElement('div');
-  price.className = 'result-price';
-  price.textContent = result.price || 'Price not available';
-  
-  // Create platform
-  const platform = document.createElement('div');
-  platform.className = 'result-platform';
-  platform.textContent = result.platform;
-  
-  // Create similarity score
-  const score = document.createElement('div');
-  score.className = 'result-score';
-  score.textContent = `Similarity: ${Math.round(result.similarityScore * 100)}%`;
-  
-  // Assemble the result item
-  info.appendChild(title);
-  info.appendChild(price);
-  info.appendChild(platform);
-  info.appendChild(score);
-  
-  div.appendChild(img);
-  div.appendChild(info);
-  
-  // Add click handler
-  div.addEventListener('click', () => {
-    debug.log(`Opening URL: ${result.url}`, 'info');
-    chrome.tabs.create({ url: result.url });
-  });
-  
-  return div;
-}
-
-// Update results display
-function updateResults(productInfo) {
-  debug.log('Updating results display', 'info');
-  resultsContainer.innerHTML = '';
-  
-  if (!productInfo || !productInfo.similarItems || productInfo.similarItems.length === 0) {
-    debug.log('No similar items to display', 'warn');
-    statusMessage.textContent = 'No similar items found';
+// Initialize
+document.addEventListener('DOMContentLoaded', async () => {
+  // Check if we're on a supported site
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) {
     return;
   }
-
-  debug.log(`Displaying ${productInfo.similarItems.length} similar items`, 'info');
   
-  // Update status message based on site type
-  if (productInfo.isFastFashion) {
-    statusMessage.textContent = 'Found sustainable alternatives on second-hand marketplaces';
-  } else {
-    statusMessage.textContent = 'Found similar items on other marketplaces';
+  // Check if we're on a supported site
+  const isSupportedSite = supportedSites.some(site => tab.url.includes(site));
+  if (!isSupportedSite) {
+    statusMessage.textContent = 'Please open a supported fast fashion website';
+    return;
   }
   
-  // Display similar items
-  productInfo.similarItems.forEach(result => {
-    resultsContainer.appendChild(createResultElement(result));
-  });
-}
+  await searchAlternatives();
+});
 
-// Check if content scripts are already injected
-async function checkContentScripts(tabId) {
-  debug.log(`Checking content scripts for tab ${tabId}`, 'info');
+// Main function to search for alternatives
+async function searchAlternatives() {
+  statusMessage.textContent = 'Loading alternatives...';
+  
   try {
-    const result = await chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      func: () => {
-        return {
-          hasAIService: typeof window.clothingService !== 'undefined',
-          hasContentScript: typeof window.rethreadInitialized !== 'undefined'
-        };
-      }
-    });
-    debug.log(`Content script check result: ${JSON.stringify(result[0].result)}`, 'info');
-    return result[0].result;
-  } catch (error) {
-    debug.log(`Error checking content scripts: ${error.message}`, 'error');
-    return { hasAIService: false, hasContentScript: false };
-  }
-}
-
-// Inject content scripts
-async function injectContentScripts(tabId) {
-  debug.log(`Attempting to inject content scripts for tab ${tabId}`, 'info');
-  try {
-    // Check if scripts are already injected
-    const { hasAIService, hasContentScript } = await checkContentScripts(tabId);
+    const productInfo = await getProductInfo();
     
-    // Always inject aiService.js first if not present
-    if (!hasAIService) {
-      debug.log('Injecting aiService.js', 'info');
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ['aiService.js']
-      });
-      // Wait for aiService to initialize
-      await new Promise(resolve => setTimeout(resolve, 500));
+    if (!productInfo) {
+      statusMessage.textContent = 'No product information found on this page';
+      return;
     }
     
-    // Then inject content.js if not present
-    if (!hasContentScript) {
-      debug.log('Injecting content.js', 'info');
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ['content.js']
-      });
+    if (!productInfo.similarItems || productInfo.similarItems.length === 0) {
+      statusMessage.textContent = 'No similar items found';
+      return;
     }
     
-    debug.log('Content scripts ready', 'info');
-    return true;
+    updateResults(productInfo);
   } catch (error) {
-    debug.log(`Error injecting content scripts: ${error.message}`, 'error');
-    return false;
+    statusMessage.textContent = `Error: ${error.message}`;
   }
 }
 
 // Get product information from active tab
 async function getProductInfo() {
   try {
+    // Get the active tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) {
-      throw new Error('No active tab found');
+      return null;
     }
-
-    // Inject content scripts if not already injected
-    await injectContentScripts(tab.id);
     
-    // Wait for scripts to initialize
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
+    // Inject content scripts if not already injected
+    const scriptsInjected = await injectContentScripts();
+    if (!scriptsInjected) {
+      return null;
+    }
+    
     // Send message to content script
     const response = await new Promise((resolve) => {
-      chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' }, resolve);
+      chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' }, (response) => {
+        resolve(response);
+      });
     });
-
-    debug.log('Received response:', response);
-
-    if (!response) {
-      throw new Error('No response received from content script');
+    
+    if (!response || !response.success) {
+      return null;
     }
-
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to get product information');
-    }
-
+    
     return response.productInfo;
   } catch (error) {
-    debug.log(`Error getting product info: ${error.message}`, 'error');
-    statusMessage.textContent = `Error: ${error.message}`;
     return null;
   }
 }
 
-// Main function to search for alternatives
-async function searchAlternatives() {
-  debug.log('Starting search for alternatives', 'info');
-  statusMessage.textContent = 'Loading alternatives...';
+// Inject content scripts
+async function injectContentScripts() {
+  // Check if scripts are already injected
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) {
+    return false;
+  }
   
   try {
-    const productInfo = await getProductInfo();
-    debug.log(`Received product info: ${JSON.stringify(productInfo)}`, 'info');
+    // First inject aiService.js
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['aiService.js']
+    });
     
-    if (!productInfo) {
-      debug.log('No product info returned', 'error');
-      statusMessage.textContent = 'No product information found on this page';
-      return;
+    // Then inject content.js
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['content.js']
+    });
+    
+    // Wait for initialization
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Check if scripts were initialized
+    const [{ result: hasService }, { result: isInitialized }] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => ({
+        hasService: !!window.clothingService,
+        isInitialized: !!window.rethreadInitialized
+      })
+    });
+    
+    if (!hasService || !isInitialized) {
+      return false;
     }
     
-    if (!productInfo.similarItems || productInfo.similarItems.length === 0) {
-      debug.log('No similar items found', 'warn');
-      statusMessage.textContent = 'No similar items found';
-      return;
-    }
-    
-    debug.log(`Found ${productInfo.similarItems.length} similar items`, 'info');
-    updateResults(productInfo);
+    return true;
   } catch (error) {
-    debug.log(`Error in searchAlternatives: ${error.message}`, 'error');
-    statusMessage.textContent = `Error: ${error.message}`;
+    return false;
   }
 }
 
-// Listen for messages from content script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  debug.log(`Received message in popup: ${JSON.stringify(message)}`, 'info');
-  if (message.action === 'productInfoUpdated') {
-    debug.log('Product info updated, updating results', 'info');
-    updateResults(message.productInfo);
-  }
-});
-
-// Initialize
-document.addEventListener('DOMContentLoaded', async () => {
-  debug.log('Popup DOM loaded, starting search', 'info');
-  await searchAlternatives();
-}); 
+// Update results in popup
+function updateResults(productInfo) {
+  resultsContainer.innerHTML = '';
+  statusMessage.textContent = '';
+  
+  productInfo.similarItems.forEach(result => {
+    const resultElement = document.createElement('div');
+    resultElement.className = 'result-item';
+    
+    const img = document.createElement('img');
+    img.src = result.image || 'icons/icon32.png';
+    img.alt = result.title;
+    
+    const title = document.createElement('h3');
+    title.textContent = result.title;
+    
+    const price = document.createElement('p');
+    price.textContent = result.price;
+    
+    const platform = document.createElement('p');
+    platform.textContent = result.platform;
+    
+    const link = document.createElement('a');
+    link.href = result.url;
+    link.target = '_blank';
+    link.textContent = 'View on ' + result.platform;
+    
+    resultElement.appendChild(img);
+    resultElement.appendChild(title);
+    resultElement.appendChild(price);
+    resultElement.appendChild(platform);
+    resultElement.appendChild(link);
+    
+    resultsContainer.appendChild(resultElement);
+  });
+} 
