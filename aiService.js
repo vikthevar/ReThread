@@ -1,7 +1,7 @@
 // AI Service for clothing similarity search
 class ClothingAIService {
   constructor() {
-    this.API_KEY = ''; // You'll need to add your API key here
+    this.API_KEY = 'AIzaSyBGA4LuZ5FxSgLTiiGfp3na41oekTDAf48'; // You'll need to add your API key here
     this.API_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
   }
 
