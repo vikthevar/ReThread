@@ -42,6 +42,25 @@ const extractors = {
     const price = document.querySelector('.price')?.textContent?.trim();
     const image = document.querySelector('.product-image img')?.src;
     return { title, price, image };
+  },
+  // Add extractors for second-hand sites
+  'depop.com': () => {
+    const title = document.querySelector('.product-title')?.textContent?.trim();
+    const price = document.querySelector('.product-price')?.textContent?.trim();
+    const image = document.querySelector('.product-image img')?.src;
+    return { title, price, image };
+  },
+  'poshmark.com': () => {
+    const title = document.querySelector('.product-title')?.textContent?.trim();
+    const price = document.querySelector('.price')?.textContent?.trim();
+    const image = document.querySelector('.product-image img')?.src;
+    return { title, price, image };
+  },
+  'thredup.com': () => {
+    const title = document.querySelector('.product-title')?.textContent?.trim();
+    const price = document.querySelector('.price')?.textContent?.trim();
+    const image = document.querySelector('.product-image img')?.src;
+    return { title, price, image };
   }
 };
 
@@ -58,16 +77,27 @@ function extractKeywords(title) {
 // Function to get current website and check if it's a fast fashion site
 function getCurrentWebsite() {
   const hostname = window.location.hostname;
-  const site = fastFashionSites.find(site => hostname.includes(site));
-  if (site) {
+  const fastFashionSite = fastFashionSites.find(site => hostname.includes(site));
+  const secondHandSite = secondHandSites.find(site => hostname.includes(site));
+  
+  if (fastFashionSite) {
     return {
-      site,
-      isFastFashion: true
+      site: fastFashionSite,
+      isFastFashion: true,
+      isSecondHand: false
+    };
+  } else if (secondHandSite) {
+    return {
+      site: secondHandSite,
+      isFastFashion: false,
+      isSecondHand: true
     };
   }
+  
   return {
     site: null,
-    isFastFashion: false
+    isFastFashion: false,
+    isSecondHand: false
   };
 }
 
@@ -114,20 +144,24 @@ function generateSearchUrls(keywords) {
 
 // Main function to extract product information
 function extractProductInfo() {
-  const { site, isFastFashion } = getCurrentWebsite();
+  const { site, isFastFashion, isSecondHand } = getCurrentWebsite();
   if (!site || !extractors[site]) return null;
 
   const productInfo = extractors[site]();
   if (!productInfo.title) return null;
 
   const keywords = extractKeywords(productInfo.title);
-  const searchUrls = isFastFashion ? generateSearchUrls(keywords) : [];
+  
+  // Generate search URLs for both fast fashion and second-hand sites
+  const searchUrls = generateSearchUrls(keywords);
 
   return {
     ...productInfo,
     keywords,
     isFastFashion,
-    searchUrls
+    isSecondHand,
+    searchUrls,
+    currentSite: site
   };
 }
 
@@ -141,7 +175,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Observe DOM changes to detect when product information is loaded
 const observer = new MutationObserver((mutations) => {
-  const { site, isFastFashion } = getCurrentWebsite();
+  const { site, isFastFashion, isSecondHand } = getCurrentWebsite();
   if (!site) return;
 
   const productInfo = extractProductInfo();

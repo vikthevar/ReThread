@@ -27,11 +27,9 @@ function createResultElement(result) {
   const div = document.createElement('div');
   div.className = 'result-item';
   div.innerHTML = `
-    <img class="result-image" src="${result.image}" alt="${result.title}">
     <div class="result-info">
-      <div class="result-title">${result.title}</div>
-      <div class="result-price">${result.price}</div>
-      <div class="result-platform">${result.platform}</div>
+      <div class="result-title">Search on ${result.platform}</div>
+      <div class="result-platform">Click to search for similar items</div>
     </div>
   `;
   
@@ -43,16 +41,36 @@ function createResultElement(result) {
 }
 
 // Update results display
-function updateResults(results) {
+function updateResults(productInfo) {
   resultsContainer.innerHTML = '';
   
-  if (results.length === 0) {
-    statusMessage.textContent = 'No alternatives found. Try different keywords.';
+  if (!productInfo || !productInfo.searchUrls || productInfo.searchUrls.length === 0) {
+    statusMessage.textContent = 'No product information found on this page';
     return;
   }
   
-  statusMessage.textContent = `Found ${results.length} alternatives`;
-  results.forEach(result => {
+  // Filter search URLs based on user preferences
+  const settings = {
+    depop: depopToggle.checked,
+    grailed: grailedToggle.checked,
+    poshmark: poshmarkToggle.checked
+  };
+
+  const filteredUrls = productInfo.searchUrls.filter(result => {
+    const platform = result.platform.split('.')[0];
+    return settings[platform] !== false;
+  });
+
+  if (filteredUrls.length === 0) {
+    statusMessage.textContent = 'Please enable at least one marketplace in settings';
+    return;
+  }
+
+  statusMessage.textContent = productInfo.isFastFashion 
+    ? 'Found sustainable alternatives on second-hand marketplaces'
+    : 'Found similar items on other marketplaces';
+    
+  filteredUrls.forEach(result => {
     resultsContainer.appendChild(createResultElement(result));
   });
 }
@@ -68,7 +86,7 @@ async function getProductInfo() {
   
   try {
     const response = await chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' });
-    if (response && response.keywords) {
+    if (response && response.searchUrls) {
       return response;
     }
   } catch (error) {
@@ -82,21 +100,10 @@ async function getProductInfo() {
 // Main function to search for alternatives
 async function searchAlternatives() {
   const productInfo = await getProductInfo();
-  if (!productInfo || !productInfo.keywords) return;
+  if (!productInfo) return;
   
-  statusMessage.textContent = 'Searching for alternatives...';
-  
-  try {
-    const results = await chrome.runtime.sendMessage({
-      action: 'searchAlternatives',
-      keywords: productInfo.keywords
-    });
-    
-    updateResults(results);
-  } catch (error) {
-    console.error('Error searching alternatives:', error);
-    statusMessage.textContent = 'Error searching for alternatives';
-  }
+  statusMessage.textContent = 'Loading alternatives...';
+  updateResults(productInfo);
 }
 
 // Event listeners

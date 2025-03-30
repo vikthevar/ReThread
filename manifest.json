@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ReThread",
   "version": "1.0",
-  "description": "Find second-hand alternatives while browsing any fashion website",
+  "description": "Find second-hand alternatives while browsing fast fashion website",
   "permissions": [
     "activeTab",
     "storage",
