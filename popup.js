@@ -185,58 +185,37 @@ async function injectContentScripts(tabId) {
 
 // Get product information from active tab
 async function getProductInfo() {
-  debug.log('Getting product info from active tab', 'info');
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  
-  if (!tab) {
-    debug.log('No active tab found', 'error');
-    statusMessage.textContent = 'No active tab found';
-    return null;
-  }
-  
-  debug.log(`Active tab URL: ${tab.url}`, 'info');
-  
   try {
-    // First, try to inject the content scripts
-    const injected = await injectContentScripts(tab.id);
-    if (!injected) {
-      debug.log('Failed to inject content scripts', 'error');
-      throw new Error('Failed to inject content scripts');
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      throw new Error('No active tab found');
     }
+
+    // Inject content scripts if not already injected
+    await injectContentScripts(tab.id);
     
-    // Wait a short moment for the scripts to initialize
-    debug.log('Waiting for scripts to initialize...', 'info');
+    // Wait for scripts to initialize
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    debug.log('Sending message to content script', 'info');
+
+    // Send message to content script
     const response = await new Promise((resolve) => {
-      chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' }, response => {
-        if (chrome.runtime.lastError) {
-          debug.log(`Chrome runtime error: ${chrome.runtime.lastError.message}`, 'error');
-          resolve(null);
-        } else {
-          debug.log(`Received response from content script: ${JSON.stringify(response)}`, 'info');
-          resolve(response);
-        }
-      });
+      chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' }, resolve);
     });
-    
+
+    console.log('Received response:', response);
+
     if (!response) {
-      debug.log('No response received from content script', 'error');
       throw new Error('No response received from content script');
     }
-    
-    if (!response.similarItems || response.similarItems.length === 0) {
-      debug.log('No similar items in response', 'warn');
-      statusMessage.textContent = 'No similar items found';
-      return null;
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to get product information');
     }
-    
-    debug.log(`Found ${response.similarItems.length} similar items`, 'info');
-    return response;
+
+    return response.productInfo;
   } catch (error) {
-    debug.log(`Error getting product info: ${error.message}`, 'error');
-    statusMessage.textContent = 'Error: Could not get product information. Please refresh the page and try again.';
+    console.error('Error getting product info:', error);
+    statusMessage.textContent = `Error: ${error.message}`;
     return null;
   }
 }
@@ -246,14 +225,28 @@ async function searchAlternatives() {
   debug.log('Starting search for alternatives', 'info');
   statusMessage.textContent = 'Loading alternatives...';
   
-  const productInfo = await getProductInfo();
-  if (!productInfo) {
-    debug.log('No product info returned', 'error');
-    return;
+  try {
+    const productInfo = await getProductInfo();
+    debug.log(`Received product info: ${JSON.stringify(productInfo)}`, 'info');
+    
+    if (!productInfo) {
+      debug.log('No product info returned', 'error');
+      statusMessage.textContent = 'No product information found on this page';
+      return;
+    }
+    
+    if (!productInfo.similarItems || productInfo.similarItems.length === 0) {
+      debug.log('No similar items found', 'warn');
+      statusMessage.textContent = 'No similar items found';
+      return;
+    }
+    
+    debug.log(`Found ${productInfo.similarItems.length} similar items`, 'info');
+    updateResults(productInfo);
+  } catch (error) {
+    debug.log(`Error in searchAlternatives: ${error.message}`, 'error');
+    statusMessage.textContent = `Error: ${error.message}`;
   }
-  
-  debug.log('Updating results with product info', 'info');
-  updateResults(productInfo);
 }
 
 // Listen for messages from content script

@@ -142,7 +142,12 @@ async function extractProductInfo() {
   console.log('Is second hand:', isSecondHand);
   
   // Get the appropriate extractor
-  const extractor = extractors[currentSite] || extractors.default;
+  const extractor = extractors[currentSite] || (() => ({
+    title: () => getTextContent('h1') || getTextContent('.product-title'),
+    price: () => getTextContent('.price') || getTextContent('.product-price'),
+    image: () => getAttribute('img', 'src'),
+    description: () => getTextContent('.description') || getTextContent('.product-description')
+  }));
   
   // Extract product information
   const productInfo = {
@@ -177,14 +182,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Received message:', request);
   if (request.action === 'getProductInfo') {
     console.log('Processing getProductInfo request');
-    extractProductInfo().then(productInfo => {
-      console.log('Sending response:', productInfo);
-      if (productInfo) {
-        sendResponse(productInfo);
-      } else {
-        sendResponse({ similarItems: [] });
-      }
-    });
+    extractProductInfo()
+      .then(productInfo => {
+        console.log('Sending response:', productInfo);
+        sendResponse({
+          success: true,
+          productInfo: productInfo || { similarItems: [] }
+        });
+      })
+      .catch(error => {
+        console.error('Error extracting product info:', error);
+        sendResponse({
+          success: false,
+          error: error.message,
+          productInfo: { similarItems: [] }
+        });
+      });
     return true; // Required for async response
   }
 });
