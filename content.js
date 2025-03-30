@@ -170,7 +170,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Processing getProductInfo request');
     extractProductInfo().then(productInfo => {
       console.log('Sending response:', productInfo);
-      sendResponse(productInfo);
+      if (productInfo) {
+        sendResponse(productInfo);
+      } else {
+        sendResponse({ similarItems: [] });
+      }
     });
     return true; // Required for async response
   }
