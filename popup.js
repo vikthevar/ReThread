@@ -1,6 +1,6 @@
 // DOM Elements
 const statusMessage = document.getElementById('statusMessage');
-const resultsContainer = document.getElementById('resultsContainer');
+const resultsContainer = document.getElementById('results');
 
 console.log('ReThread popup initialized');
 
@@ -61,38 +61,43 @@ function createResultElement(result) {
   const div = document.createElement('div');
   div.className = 'result-item';
   
-  // Create platform icon
-  const platformIcon = document.createElement('img');
-  platformIcon.className = 'platform-icon';
-  platformIcon.src = `icons/${result.platform.split('.')[0]}.png`;
-  platformIcon.alt = result.platform;
+  // Create image element
+  const img = document.createElement('img');
+  img.src = result.image || 'icon.png';
+  img.alt = result.title;
   
-  // Create result content
-  const content = document.createElement('div');
-  content.className = 'result-content';
+  // Create result info
+  const info = document.createElement('div');
+  info.className = 'result-info';
   
-  // Create title with platform
+  // Create title
   const title = document.createElement('div');
   title.className = 'result-title';
-  title.textContent = `Similar items on ${result.platform}`;
-  
-  // Create similarity score
-  const score = document.createElement('div');
-  score.className = 'similarity-score';
-  score.textContent = `Match: ${Math.round(result.similarityScore * 100)}%`;
+  title.textContent = result.title;
   
   // Create price
   const price = document.createElement('div');
   price.className = 'result-price';
-  price.textContent = result.price;
+  price.textContent = result.price || 'Price not available';
+  
+  // Create platform
+  const platform = document.createElement('div');
+  platform.className = 'result-platform';
+  platform.textContent = result.platform;
+  
+  // Create similarity score
+  const score = document.createElement('div');
+  score.className = 'result-score';
+  score.textContent = `Similarity: ${Math.round(result.similarityScore * 100)}%`;
   
   // Assemble the result item
-  content.appendChild(title);
-  content.appendChild(score);
-  content.appendChild(price);
+  info.appendChild(title);
+  info.appendChild(price);
+  info.appendChild(platform);
+  info.appendChild(score);
   
-  div.appendChild(platformIcon);
-  div.appendChild(content);
+  div.appendChild(img);
+  div.appendChild(info);
   
   // Add click handler
   div.addEventListener('click', () => {
@@ -119,10 +124,8 @@ function updateResults(productInfo) {
   // Update status message based on site type
   if (productInfo.isFastFashion) {
     statusMessage.textContent = 'Found sustainable alternatives on second-hand marketplaces';
-    statusMessage.className = 'status-message fast-fashion';
   } else {
     statusMessage.textContent = 'Found similar items on other marketplaces';
-    statusMessage.className = 'status-message second-hand';
   }
   
   // Display similar items
@@ -230,14 +233,6 @@ async function searchAlternatives() {
   statusMessage.textContent = 'Loading alternatives...';
   
   try {
-    // Check for API key
-    const { apiKey } = await chrome.storage.local.get('apiKey');
-    if (!apiKey) {
-      debug.log('No API key found', 'error');
-      statusMessage.textContent = 'Please enter your Google Cloud Vision API key to continue';
-      return;
-    }
-    
     const productInfo = await getProductInfo();
     debug.log(`Received product info: ${JSON.stringify(productInfo)}`, 'info');
     
@@ -272,38 +267,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-  // Load saved API key
-  const { apiKey } = await chrome.storage.local.get('apiKey');
-  if (apiKey) {
-    document.getElementById('apiKey').value = apiKey;
-  }
-  
-  // Handle API key save
-  document.getElementById('saveApiKey').addEventListener('click', async () => {
-    const apiKey = document.getElementById('apiKey').value.trim();
-    if (!apiKey) {
-      debug.log('Please enter an API key', 'error');
-      return;
-    }
-    
-    try {
-      await chrome.storage.local.set({ apiKey });
-      debug.log('API key saved successfully', 'info');
-      
-      // Set API key in content script
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'setApiKey',
-          apiKey
-        });
-        debug.log('API key set in content script', 'info');
-      }
-    } catch (error) {
-      debug.log(`Error saving API key: ${error.message}`, 'error');
-    }
-  });
-  
-  // Start search
-  searchAlternatives();
+  debug.log('Popup DOM loaded, starting search', 'info');
+  await searchAlternatives();
 }); 

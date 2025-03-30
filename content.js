@@ -172,13 +172,30 @@ async function extractProductInfo() {
   if (productInfo.title && productInfo.description) {
     console.log('Finding similar items...');
     const searchText = `${productInfo.title} ${productInfo.description}`;
-    const similarItems = await window.clothingService.findSimilarItems(searchText, productInfo.image, secondHandSites);
-    console.log('Found similar items:', similarItems);
     
-    return {
-      ...productInfo,
-      similarItems: similarItems || []
-    };
+    try {
+      const similarItems = await window.clothingService.findSimilarItems(searchText, productInfo.image, secondHandSites);
+      console.log('Found similar items:', similarItems);
+      
+      if (similarItems && similarItems.length > 0) {
+        return {
+          ...productInfo,
+          similarItems: similarItems
+        };
+      } else {
+        console.log('No similar items found');
+        return {
+          ...productInfo,
+          similarItems: []
+        };
+      }
+    } catch (error) {
+      console.error('Error finding similar items:', error);
+      return {
+        ...productInfo,
+        similarItems: []
+      };
+    }
   }
   
   console.log('No product information found');
@@ -188,13 +205,6 @@ async function extractProductInfo() {
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Received message:', request);
-  
-  if (request.action === 'setApiKey') {
-    console.log('Setting API key');
-    window.clothingService.setApiKey(request.apiKey);
-    sendResponse({ success: true });
-    return true;
-  }
   
   if (request.action === 'getProductInfo') {
     console.log('Processing getProductInfo request');
