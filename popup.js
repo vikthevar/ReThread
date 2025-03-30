@@ -101,6 +101,22 @@ async function getProductInfo() {
     }
   } catch (error) {
     console.error('Error getting product info:', error);
+    if (error.message.includes('receiving end does not exist')) {
+      // Content script not ready, try to inject it
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['aiService.js', 'content.js']
+        });
+        // Retry getting product info
+        const response = await chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' });
+        if (response && response.similarItems) {
+          return response;
+        }
+      } catch (injectionError) {
+        console.error('Error injecting content script:', injectionError);
+      }
+    }
     statusMessage.textContent = 'Error: Could not get product information. Please refresh the page and try again.';
   }
   

@@ -2,16 +2,21 @@
   "manifest_version": 3,
   "name": "ReThread",
   "version": "1.0",
-  "description": "Find second-hand alternatives while browsing any fashion website",
+  "description": "Find sustainable alternatives to fast fashion items",
   "permissions": [
     "activeTab",
-    "storage",
     "scripting"
   ],
   "host_permissions": [
     "*://*.hm.com/*",
     "*://*.shein.com/*",
     "*://*.zara.com/*",
+    "*://*.fashionnova.com/*",
+    "*://*.forever21.com/*",
+    "*://*.uniqlo.com/*",
+    "*://*.gap.com/*",
+    "*://*.hollister.com/*",
+    "*://*.abercrombie.com/*",
     "*://*.depop.com/*",
     "*://*.grailed.com/*",
     "*://*.poshmark.com/*",
@@ -19,23 +24,15 @@
     "*://*.mercari.com/*",
     "*://*.vinted.com/*",
     "*://*.etsy.com/*",
-    "*://*.ebay.com/*",
-    "*://*.asos.com/*",
-    "*://*.fashionnova.com/*",
-    "*://*.forever21.com/*",
-    "*://*.urbanoutfitters.com/*",
-    "*://*.nordstrom.com/*",
-    "*://*.macy.com/*",
-    "*://*.uniqlo.com/*",
-    "*://*.gap.com/*",
-    "*://*.zara.com/*",
-    "*://*.hollister.com/*",
-    "*://*.abercrombie.com/*",
-    "https://vision.googleapis.com/*"
+    "*://*.ebay.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "icon.png"
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
   },
   "content_scripts": [
     {
@@ -43,6 +40,12 @@
         "*://*.hm.com/*",
         "*://*.shein.com/*",
         "*://*.zara.com/*",
+        "*://*.fashionnova.com/*",
+        "*://*.forever21.com/*",
+        "*://*.uniqlo.com/*",
+        "*://*.gap.com/*",
+        "*://*.hollister.com/*",
+        "*://*.abercrombie.com/*",
         "*://*.depop.com/*",
         "*://*.grailed.com/*",
         "*://*.poshmark.com/*",
@@ -50,26 +53,15 @@
         "*://*.mercari.com/*",
         "*://*.vinted.com/*",
         "*://*.etsy.com/*",
-        "*://*.ebay.com/*",
-        "*://*.asos.com/*",
-        "*://*.fashionnova.com/*",
-        "*://*.forever21.com/*",
-        "*://*.urbanoutfitters.com/*",
-        "*://*.nordstrom.com/*",
-        "*://*.macy.com/*",
-        "*://*.uniqlo.com/*",
-        "*://*.gap.com/*",
-        "*://*.zara.com/*",
-        "*://*.hollister.com/*",
-        "*://*.abercrombie.com/*"
+        "*://*.ebay.com/*"
       ],
-      "js": ["content.js"]
+      "js": ["aiService.js", "content.js"],
+      "run_at": "document_end"
     }
   ],
-  "background": {
-    "service_worker": "background.js"
-  },
   "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
     "128": "icon.png"
   }
 } 
