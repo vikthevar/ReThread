@@ -162,8 +162,8 @@ async function getProductInfo() {
     statusMessage.textContent = 'Error: Could not get product information. Please refresh the page and try again.';
   }
   
-  statusMessage.textContent = 'No product information found on this page';
-  return null;
+  //statusMessage.textContent = 'No product information found on this page';
+  //return null;
 }
 
 // Main function to search for alternatives
