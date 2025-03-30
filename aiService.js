@@ -1,6 +1,7 @@
 // Service for clothing similarity search
 class ClothingService {
   constructor() {
+<<<<<<< HEAD
     // Keywords to extract from descriptions
     this.keywordCategories = {
       style: ['casual', 'formal', 'vintage', 'modern', 'streetwear', 'bohemian', 'minimalist', 'athletic', 'preppy', 'grunge'],
@@ -9,6 +10,10 @@ class ClothingService {
       color: ['black', 'white', 'red', 'blue', 'green', 'yellow', 'purple', 'pink', 'brown', 'gray', 'navy', 'beige'],
       pattern: ['solid', 'striped', 'floral', 'plaid', 'polka dot', 'checkered', 'leopard', 'camouflage', 'tie dye', 'geometric']
     };
+=======
+    this.API_KEY = 'AIzaSyBGA4LuZ5FxSgLTiiGfp3na41oekTDAf48'; // You'll need to add your API key here
+    this.API_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+>>>>>>> dd1e6bba81b0507d62436416119b9b5abc6bf37c
   }
 
   // Extract keywords from description
@@ -165,4 +170,8 @@ class ClothingService {
 }
 
 // Export the service
+<<<<<<< HEAD
 export const clothingService = new ClothingService(); 
+=======
+export const clothingAIService = new ClothingAIService(); 
+>>>>>>> dd1e6bba81b0507d62436416119b9b5abc6bf37c
