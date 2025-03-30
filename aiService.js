@@ -123,34 +123,27 @@ class ClothingAIService {
     const searchQuery = this.generateSearchQuery(keywords);
     console.log('Generated search query:', searchQuery);
 
-    // Generate URLs for each target site
+    // Generate URLs for each target site using a generic approach
     const similarItems = targetSites.map(site => {
-      let url;
-      switch(site) {
-        case 'depop.com':
-          url = `https://www.depop.com/search?q=${encodeURIComponent(searchQuery)}`;
-          break;
-        case 'poshmark.com':
-          url = `https://poshmark.com/search?query=${encodeURIComponent(searchQuery)}`;
-          break;
-        case 'thredup.com':
-          url = `https://www.thredup.com/search?search_term=${encodeURIComponent(searchQuery)}`;
-          break;
-        case 'mercari.com':
-          url = `https://www.mercari.com/search?keyword=${encodeURIComponent(searchQuery)}`;
-          break;
-        case 'vinted.com':
-          url = `https://www.vinted.com/catalog?search_text=${encodeURIComponent(searchQuery)}`;
-          break;
-        case 'etsy.com':
-          url = `https://www.etsy.com/search?q=${encodeURIComponent(searchQuery)}`;
-          break;
-        case 'ebay.com':
-          url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(searchQuery)}`;
-          break;
-        default:
-          url = `https://www.${site}/search?q=${encodeURIComponent(searchQuery)}`;
-      }
+      // Create a clean domain name
+      const cleanDomain = site.replace(/^www\./, '');
+      
+      // Try different common search URL patterns
+      const searchPatterns = [
+        `https://www.${cleanDomain}/search?q=`,
+        `https://www.${cleanDomain}/search?query=`,
+        `https://www.${cleanDomain}/search?search=`,
+        `https://www.${cleanDomain}/search?search_term=`,
+        `https://www.${cleanDomain}/search?keyword=`,
+        `https://www.${cleanDomain}/catalog?q=`,
+        `https://www.${cleanDomain}/products?q=`,
+        `https://www.${cleanDomain}/shop?q=`,
+        `https://www.${cleanDomain}/collections/all?q=`,
+        `https://www.${cleanDomain}/all?q=`
+      ];
+
+      // Use the first pattern for now (we could try all patterns if needed)
+      const url = searchPatterns[0] + encodeURIComponent(searchQuery);
 
       // Calculate similarity score based on keyword matches
       const similarityScore = this.calculateSimilarityScore(keywords);
