@@ -188,6 +188,14 @@ async function extractProductInfo() {
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Received message:', request);
+  
+  if (request.action === 'setApiKey') {
+    console.log('Setting API key');
+    window.clothingService.setApiKey(request.apiKey);
+    sendResponse({ success: true });
+    return true;
+  }
+  
   if (request.action === 'getProductInfo') {
     console.log('Processing getProductInfo request');
     extractProductInfo()

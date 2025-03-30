@@ -221,7 +221,7 @@ class ClothingAIService {
                 imageAnalysis
               );
               
-              if (similarityScore > 0.3) { // Only include items with decent similarity
+              if (similarityScore > 0.2) {
                 similarItems.push({
                   title,
                   price,
@@ -305,7 +305,7 @@ class ClothingAIService {
     // Check keyword matches in title
     for (const keyword of keywords) {
       if (title.includes(keyword)) {
-        score += 0.2;
+        score += 0.4;
       }
     }
     
@@ -314,9 +314,14 @@ class ClothingAIService {
       const titleWords = title.split(' ');
       for (const entity of imageAnalysis.webDetection.webEntities) {
         if (titleWords.some(word => entity.description.toLowerCase().includes(word))) {
-          score += 0.3;
+          score += 0.5;
         }
       }
+    }
+    
+    // Add a base score for having any matches
+    if (score > 0) {
+      score += 0.2;
     }
     
     return Math.min(score, 1); // Cap at 1

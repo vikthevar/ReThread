@@ -206,7 +206,7 @@ async function getProductInfo() {
       chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' }, resolve);
     });
 
-    console.log('Received response:', response);
+    debug.log('Received response:', response);
 
     if (!response) {
       throw new Error('No response received from content script');
@@ -218,7 +218,7 @@ async function getProductInfo() {
 
     return response.productInfo;
   } catch (error) {
-    console.error('Error getting product info:', error);
+    debug.log(`Error getting product info: ${error.message}`, 'error');
     statusMessage.textContent = `Error: ${error.message}`;
     return null;
   }
@@ -230,6 +230,14 @@ async function searchAlternatives() {
   statusMessage.textContent = 'Loading alternatives...';
   
   try {
+    // Check for API key
+    const { apiKey } = await chrome.storage.local.get('apiKey');
+    if (!apiKey) {
+      debug.log('No API key found', 'error');
+      statusMessage.textContent = 'Please enter your Google Cloud Vision API key to continue';
+      return;
+    }
+    
     const productInfo = await getProductInfo();
     debug.log(`Received product info: ${JSON.stringify(productInfo)}`, 'info');
     
@@ -264,6 +272,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-  debug.log('Popup DOM loaded, starting search', 'info');
-  await searchAlternatives();
+  // Load saved API key
+  const { apiKey } = await chrome.storage.local.get('apiKey');
+  if (apiKey) {
+    document.getElementById('apiKey').value = apiKey;
+  }
+  
+  // Handle API key save
+  document.getElementById('saveApiKey').addEventListener('click', async () => {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) {
+      debug.log('Please enter an API key', 'error');
+      return;
+    }
+    
+    try {
+      await chrome.storage.local.set({ apiKey });
+      debug.log('API key saved successfully', 'info');
+      
+      // Set API key in content script
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'setApiKey',
+          apiKey
+        });
+        debug.log('API key set in content script', 'info');
+      }
+    } catch (error) {
+      debug.log(`Error saving API key: ${error.message}`, 'error');
+    }
+  });
+  
+  // Start search
+  searchAlternatives();
 }); 
