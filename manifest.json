@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Sustainable Fashion Finder",
+  "version": "1.0",
+  "description": "Find second-hand alternatives while browsing fast fashion websites",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.hm.com/*",
+    "*://*.shein.com/*",
+    "*://*.zara.com/*",
+    "*://*.depop.com/*",
+    "*://*.grailed.com/*",
+    "*://*.poshmark.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.hm.com/*",
+        "*://*.shein.com/*",
+        "*://*.zara.com/*"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+} 
