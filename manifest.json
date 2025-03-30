@@ -63,5 +63,9 @@
   ],
   "icons": {
     "48": "icon.png"
-  }
+  },
+  "web_accessible_resources": [{
+    "resources": ["product-mappings.json"],
+    "matches": ["<all_urls>"]
+  }]
 } 

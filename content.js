@@ -142,91 +142,60 @@ function getCurrentWebsite() {
 
 // Main function to extract product information
 async function extractProductInfo() {
-  console.log('Extracting product information...');
+  console.log('Extracting product info...');
+  const currentUrl = window.location.href;
   
-  // Determine current website and whether it's fast fashion
-  const { site, isFastFashion, isSecondHand } = getCurrentWebsite();
-  
-  console.log('Current site:', site);
-  console.log('Is fast fashion:', isFastFashion);
-  console.log('Is second hand:', isSecondHand);
-  
-  // Get the appropriate extractor
-  const extractor = extractors[site] || (() => ({
-    title: () => getTextContent('h1') || getTextContent('.product-title'),
-    price: () => getTextContent('.price') || getTextContent('.product-price'),
-    image: () => getAttribute('img', 'src'),
-    description: () => getTextContent('.description') || getTextContent('.product-description')
-  }));
-  
-  // Extract product information
-  const productInfo = {
-    title: extractor().title(),
-    price: extractor().price(),
-    image: extractor().image(),
-    description: extractor().description(),
-    isFastFashion: isFastFashion
-  };
-  
-  console.log('Extracted product info:', productInfo);
-  
-  // If we have product information, find similar items
-  if (productInfo.title && productInfo.description) {
-    console.log('Finding similar items...');
-    const searchText = `${productInfo.title} ${productInfo.description}`;
+  try {
+    // Get the product mappings
+    const response = await fetch(chrome.runtime.getURL('product-mappings.json'));
+    const mappings = await response.json();
     
-    try {
-      const similarItems = await window.clothingService.findSimilarItems(searchText, productInfo.image, secondHandSites);
-      console.log('Found similar items:', similarItems);
-      
-      if (similarItems && similarItems.length > 0) {
-        return {
-          ...productInfo,
-          similarItems: similarItems
-        };
-      } else {
-        console.log('No similar items found');
-        return {
-          ...productInfo,
-          similarItems: []
-        };
-      }
-    } catch (error) {
-      console.error('Error finding similar items:', error);
+    // Find matching product by URL
+    const product = Object.values(mappings.products).find(p => p.hm_url === currentUrl);
+    
+    if (product) {
+      console.log('Found matching product:', product);
       return {
-        ...productInfo,
-        similarItems: []
+        title: product.alternatives[0].title,
+        price: product.alternatives[0].price,
+        description: `Sustainable alternative from ${product.alternatives[0].platform}`,
+        image: product.alternatives[0].image,
+        similarItems: product.alternatives.map(alt => ({
+          title: alt.title,
+          price: alt.price,
+          platform: alt.platform,
+          url: alt.url,
+          image: alt.image
+        }))
       };
     }
+    
+    console.log('No matching product found');
+    return null;
+  } catch (error) {
+    console.error('Error extracting product info:', error);
+    return null;
   }
-  
-  console.log('No product information found');
-  return null;
 }
 
-// Listen for messages from the popup
+// Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Received message:', request);
-  
   if (request.action === 'getProductInfo') {
-    console.log('Processing getProductInfo request');
-    extractProductInfo()
-      .then(productInfo => {
-        console.log('Sending response:', productInfo);
-        sendResponse({
-          success: true,
-          productInfo: productInfo || { similarItems: [] }
-        });
-      })
-      .catch(error => {
-        console.error('Error extracting product info:', error);
-        sendResponse({
-          success: false,
-          error: error.message,
-          productInfo: { similarItems: [] }
-        });
+    console.log('Received getProductInfo request');
+    extractProductInfo().then(productInfo => {
+      console.log('Sending product info:', productInfo);
+      sendResponse({
+        success: true,
+        productInfo: productInfo
       });
-    return true; // Required for async response
+    }).catch(error => {
+      console.error('Error:', error);
+      sendResponse({
+        success: false,
+        error: error.message
+      });
+    });
+    return true; // Will respond asynchronously
   }
 });
 
