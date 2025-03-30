@@ -5,10 +5,15 @@
   "description": "Find sustainable alternatives to fast fashion items",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
+    "*://*.hm.com/*",
+    "*://*.shein.com/*",
+    "*://*.zara.com/*",
     "*://*.depop.com/*",
+    "*://*.grailed.com/*",
     "*://*.poshmark.com/*",
     "*://*.thredup.com/*",
     "*://*.mercari.com/*",
@@ -49,77 +54,20 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icon.png",
-      "48": "icon.png",
-      "128": "icon.png"
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     }
-  },
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://*.zara.com/*",
-        "*://*.hm.com/*",
-        "*://*.forever21.com/*",
-        "*://*.gap.com/*",
-        "*://*.uniqlo.com/*",
-        "*://*.shein.com/*",
-        "*://*.fashionnova.com/*",
-        "*://*.boohoo.com/*",
-        "*://*.asos.com/*",
-        "*://*.nastygal.com/*",
-        "*://*.missguided.com/*",
-        "*://*.prettylittlething.com/*",
-        "*://*.zaful.com/*",
-        "*://*.romwe.com/*",
-        "*://*.wish.com/*",
-        "*://*.aliexpress.com/*",
-        "*://*.amazon.com/*",
-        "*://*.walmart.com/*",
-        "*://*.target.com/*",
-        "*://*.depop.com/*",
-        "*://*.poshmark.com/*",
-        "*://*.thredup.com/*",
-        "*://*.mercari.com/*",
-        "*://*.vinted.com/*",
-        "*://*.etsy.com/*",
-        "*://*.ebay.com/*",
-        "*://*.shopgoodwill.com/*",
-        "*://*.therealreal.com/*",
-        "*://*.vestiairecollective.com/*",
-        "*://*.tradesy.com/*",
-        "*://*.rebag.com/*",
-        "*://*.fashionphile.com/*",
-        "*://*.luxurygaragesale.com/*",
-        "*://*.reformation.com/*",
-        "*://*.everlane.com/*",
-        "*://*.patagonia.com/*",
-        "*://*.peopletree.com/*",
-        "*://*.thoughtclothing.com/*",
-        "*://*.amourvert.com/*",
-        "*://*.mata-traders.com/*",
-        "*://*.pactapparel.com/*",
-        "*://*.tentree.com/*",
-        "*://*.outerknown.com/*",
-        "*://*.kotn.com/*",
-        "*://*.girlfriend.com/*",
-        "*://*.maggiesorganics.com/*",
-        "*://*.organicbasics.com/*",
-        "*://*.ableclothing.com/*",
-        "*://*.christydawn.com/*",
-        "*://*.tamga.com/*",
-        "*://*.sustainableclothing.com/*",
-        "*://*.sustainablefashion.com/*",
-        "*://*.ethicalfashion.com/*",
-        "*://*.consciousclothing.com/*",
-        "*://*.ecofashion.com/*",
-        "*://*.sustainablemarketplace.com/*"
-      ],
+      "matches": ["<all_urls>"],
       "js": ["aiService.js", "content.js"]
     }
-  ]
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
 } 

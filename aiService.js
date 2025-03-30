@@ -167,47 +167,85 @@ class ClothingAIService {
   }
 
   // Find similar items based on image and description
-  async findSimilarItems(description, imageUrl, targetSites) {
-    console.log('Finding similar items for:', { description, imageUrl });
-    
+  async findSimilarItems(searchText, imageUrl, targetSites) {
     try {
-      // Analyze image using Google Cloud Vision API
-      const analysis = await this.analyzeImage(imageUrl);
+      console.log('Starting similar items search with:', { searchText, imageUrl, targetSites });
       
-      // Extract keywords from description
-      const keywords = this.extractKeywords(description);
+      // First, analyze the image using Google Cloud Vision API
+      const imageAnalysis = await this.analyzeImage(imageUrl);
+      console.log('Image analysis result:', imageAnalysis);
       
-      // Get web detection results
-      const webDetection = analysis.webDetection;
-      const visuallySimilarImages = webDetection.visuallySimilarImages || [];
+      // Extract keywords from both search text and image analysis
+      const keywords = this.extractKeywords(searchText);
+      const imageKeywords = imageAnalysis.webDetection?.webEntities?.map(entity => entity.description.toLowerCase()) || [];
+      const combinedKeywords = [...new Set([...keywords, ...imageKeywords])];
       
-      // Generate search results
-      const similarItems = visuallySimilarImages.map(image => {
-        const url = image.url;
-        const site = this.getSiteFromUrl(url);
+      console.log('Combined keywords:', combinedKeywords);
+      
+      // Generate search queries
+      const searchQueries = this.generateSearchQueries(combinedKeywords);
+      console.log('Generated search queries:', searchQueries);
+      
+      // Find similar items on target sites
+      const similarItems = [];
+      
+      // For each target site, search for similar items
+      for (const site of targetSites) {
+        const siteUrl = `https://${site}`;
+        const searchUrl = `${siteUrl}/search?q=${encodeURIComponent(searchQueries[0])}`;
         
-        // Calculate similarity score based on both visual similarity and keyword matches
-        const visualScore = image.score || 0;
-        const keywordScore = this.calculateSimilarityScore(keywords);
-        const combinedScore = (visualScore + keywordScore) / 2;
-        
-        return {
-          title: `Similar item on ${site}`,
-          price: 'Varies',
-          platform: site,
-          url: url,
-          image: url,
-          similarityScore: combinedScore
-        };
-      });
-
+        try {
+          // Make a request to the search URL
+          const response = await fetch(searchUrl);
+          const html = await response.text();
+          
+          // Create a temporary DOM to parse the response
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          
+          // Find product elements (this is a simplified example)
+          const productElements = doc.querySelectorAll('.product-item, .item-card, .product-card');
+          
+          // Process each product
+          for (const element of productElements) {
+            const title = element.querySelector('.title, .product-title')?.textContent.trim();
+            const price = element.querySelector('.price, .product-price')?.textContent.trim();
+            const url = element.querySelector('a')?.href;
+            const image = element.querySelector('img')?.src;
+            
+            if (title && url) {
+              // Calculate similarity score
+              const similarityScore = this.calculateSimilarityScore(
+                combinedKeywords,
+                title.toLowerCase(),
+                imageAnalysis
+              );
+              
+              if (similarityScore > 0.3) { // Only include items with decent similarity
+                similarItems.push({
+                  title,
+                  price,
+                  url,
+                  image,
+                  platform: site,
+                  similarityScore
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error searching ${site}:`, error);
+        }
+      }
+      
       // Sort by similarity score and return top 5
-      return similarItems
-        .sort((a, b) => b.similarityScore - a.similarityScore)
-        .slice(0, 5);
+      similarItems.sort((a, b) => b.similarityScore - a.similarityScore);
+      console.log('Found similar items:', similarItems);
+      
+      return similarItems.slice(0, 5);
     } catch (error) {
       console.error('Error finding similar items:', error);
-      throw error;
+      return [];
     }
   }
 
@@ -261,37 +299,27 @@ class ClothingAIService {
   }
 
   // Calculate similarity score based on keyword matches
-  calculateSimilarityScore(keywords) {
-    console.log('Calculating similarity score for keywords:', keywords);
+  calculateSimilarityScore(keywords, title, imageAnalysis) {
     let score = 0;
     
-    // Only consider type and color matches
-    const weights = {
-      type: 0.6,    // Type of clothing (most important)
-      color: 0.4    // Color matching
-    };
-
-    // Check for type match
-    if (keywords.type.length > 0) {
-      score += weights.type;
-      console.log('Type match found, adding:', weights.type);
+    // Check keyword matches in title
+    for (const keyword of keywords) {
+      if (title.includes(keyword)) {
+        score += 0.2;
+      }
     }
-
-    // Check for color match
-    if (keywords.color.length > 0) {
-      score += weights.color;
-      console.log('Color match found, adding:', weights.color);
+    
+    // Check visual similarity using image analysis
+    if (imageAnalysis.webDetection?.webEntities) {
+      const titleWords = title.split(' ');
+      for (const entity of imageAnalysis.webDetection.webEntities) {
+        if (titleWords.some(word => entity.description.toLowerCase().includes(word))) {
+          score += 0.3;
+        }
+      }
     }
-
-    // Boost score if we have both type and color matches
-    if (keywords.type.length > 0 && keywords.color.length > 0) {
-      score += 0.2;
-      console.log('Both type and color match found, adding boost:', 0.2);
-    }
-
-    const finalScore = Math.min(1, score);
-    console.log('Final similarity score:', finalScore);
-    return finalScore;
+    
+    return Math.min(score, 1); // Cap at 1
   }
 }
 
