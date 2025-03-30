@@ -128,21 +128,29 @@ const extractors = {
   }
 };
 
+// Helper function to get current website info
+function getCurrentWebsite() {
+  const hostname = window.location.hostname;
+  return {
+    site: hostname,
+    isFastFashion: fastFashionSites.some(site => hostname.includes(site)),
+    isSecondHand: secondHandSites.some(site => hostname.includes(site))
+  };
+}
+
 // Main function to extract product information
 async function extractProductInfo() {
   console.log('Extracting product information...');
   
   // Determine current website and whether it's fast fashion
-  const currentSite = window.location.hostname;
-  const isFastFashion = fastFashionSites.some(site => currentSite.includes(site));
-  const isSecondHand = secondHandSites.some(site => currentSite.includes(site));
+  const { site, isFastFashion, isSecondHand } = getCurrentWebsite();
   
-  console.log('Current site:', currentSite);
+  console.log('Current site:', site);
   console.log('Is fast fashion:', isFastFashion);
   console.log('Is second hand:', isSecondHand);
   
   // Get the appropriate extractor
-  const extractor = extractors[currentSite] || (() => ({
+  const extractor = extractors[site] || (() => ({
     title: () => getTextContent('h1') || getTextContent('.product-title'),
     price: () => getTextContent('.price') || getTextContent('.product-price'),
     image: () => getAttribute('img', 'src'),
@@ -151,10 +159,10 @@ async function extractProductInfo() {
   
   // Extract product information
   const productInfo = {
-    title: extractor.title(),
-    price: extractor.price(),
-    image: extractor.image(),
-    description: extractor.description(),
+    title: extractor().title(),
+    price: extractor().price(),
+    image: extractor().image(),
+    description: extractor().description(),
     isFastFashion: isFastFashion
   };
   
@@ -164,7 +172,7 @@ async function extractProductInfo() {
   if (productInfo.title && productInfo.description) {
     console.log('Finding similar items...');
     const searchText = `${productInfo.title} ${productInfo.description}`;
-    const similarItems = await clothingService.findSimilarItems(searchText, productInfo.image, secondHandSites);
+    const similarItems = await window.clothingService.findSimilarItems(searchText, productInfo.image, secondHandSites);
     console.log('Found similar items:', similarItems);
     
     return {

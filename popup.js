@@ -159,14 +159,18 @@ async function injectContentScripts(tabId) {
     // Check if scripts are already injected
     const { hasAIService, hasContentScript } = await checkContentScripts(tabId);
     
+    // Always inject aiService.js first if not present
     if (!hasAIService) {
       debug.log('Injecting aiService.js', 'info');
       await chrome.scripting.executeScript({
         target: { tabId: tabId },
         files: ['aiService.js']
       });
+      // Wait for aiService to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     
+    // Then inject content.js if not present
     if (!hasContentScript) {
       debug.log('Injecting content.js', 'info');
       await chrome.scripting.executeScript({
