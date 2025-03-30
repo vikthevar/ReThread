@@ -1,62 +1,52 @@
 // DOM Elements
 const statusMessage = document.getElementById('status-message');
 const resultsContainer = document.getElementById('results-container');
-const depopToggle = document.getElementById('depop-toggle');
-const grailedToggle = document.getElementById('grailed-toggle');
-const poshmarkToggle = document.getElementById('poshmark-toggle');
-const aiResultsContainer = document.getElementById('ai-results-container');
 
-// Load settings from storage
-async function loadSettings() {
-  const settings = await chrome.storage.sync.get(['depop', 'grailed', 'poshmark']);
-  depopToggle.checked = settings.depop !== false;
-  grailedToggle.checked = settings.grailed !== false;
-  poshmarkToggle.checked = settings.poshmark !== false;
-}
-
-// Save settings to storage
-async function saveSettings() {
-  await chrome.storage.sync.set({
-    depop: depopToggle.checked,
-    grailed: grailedToggle.checked,
-    poshmark: poshmarkToggle.checked
-  });
-}
+console.log('ReThread popup initialized');
 
 // Create result item element
 function createResultElement(result) {
+  console.log('Creating result element:', result);
   const div = document.createElement('div');
   div.className = 'result-item';
-  div.innerHTML = `
-    <div class="result-info">
-      <div class="result-title">Search on ${result.platform}</div>
-      <div class="result-platform">Click to search for similar items</div>
-    </div>
-  `;
   
+  // Create platform icon
+  const platformIcon = document.createElement('img');
+  platformIcon.className = 'platform-icon';
+  platformIcon.src = `icons/${result.platform.split('.')[0]}.png`;
+  platformIcon.alt = result.platform;
+  
+  // Create result content
+  const content = document.createElement('div');
+  content.className = 'result-content';
+  
+  // Create title with platform
+  const title = document.createElement('div');
+  title.className = 'result-title';
+  title.textContent = `Similar items on ${result.platform}`;
+  
+  // Create similarity score
+  const score = document.createElement('div');
+  score.className = 'similarity-score';
+  score.textContent = `Match: ${Math.round(result.similarityScore * 100)}%`;
+  
+  // Create price
+  const price = document.createElement('div');
+  price.className = 'result-price';
+  price.textContent = result.price;
+  
+  // Assemble the result item
+  content.appendChild(title);
+  content.appendChild(score);
+  content.appendChild(price);
+  
+  div.appendChild(platformIcon);
+  div.appendChild(content);
+  
+  // Add click handler
   div.addEventListener('click', () => {
+    console.log('Opening URL:', result.url);
     chrome.tabs.create({ url: result.url });
-  });
-  
-  return div;
-}
-
-// Create AI result item element
-function createAIResultElement(item) {
-  const div = document.createElement('div');
-  div.className = 'ai-result-item';
-  div.innerHTML = `
-    <img class="result-image" src="${item.image}" alt="${item.title}">
-    <div class="result-info">
-      <div class="result-title">${item.title}</div>
-      <div class="result-price">${item.price}</div>
-      <div class="result-platform">${item.platform}</div>
-      <div class="similarity-score">Similarity: ${Math.round(item.similarityScore * 100)}%</div>
-    </div>
-  `;
-  
-  div.addEventListener('click', () => {
-    chrome.tabs.create({ url: item.url });
   });
   
   return div;
@@ -64,68 +54,54 @@ function createAIResultElement(item) {
 
 // Update results display
 function updateResults(productInfo) {
+  console.log('Updating results with:', productInfo);
   resultsContainer.innerHTML = '';
-  aiResultsContainer.innerHTML = '';
   
-  if (!productInfo || !productInfo.searchUrls || productInfo.searchUrls.length === 0) {
-    statusMessage.textContent = 'No product information found on this page';
-    return;
-  }
-  
-  // Filter search URLs based on user preferences
-  const settings = {
-    depop: depopToggle.checked,
-    grailed: grailedToggle.checked,
-    poshmark: poshmarkToggle.checked
-  };
-
-  const filteredUrls = productInfo.searchUrls.filter(result => {
-    const platform = result.platform.split('.')[0];
-    return settings[platform] !== false;
-  });
-
-  if (filteredUrls.length === 0) {
-    statusMessage.textContent = 'Please enable at least one marketplace in settings';
+  if (!productInfo || !productInfo.similarItems || productInfo.similarItems.length === 0) {
+    console.log('No similar items found');
+    statusMessage.textContent = 'No similar items found';
     return;
   }
 
-  // Display keyword-based search results
-  statusMessage.textContent = productInfo.isFastFashion 
-    ? 'Found sustainable alternatives on second-hand marketplaces'
-    : 'Found similar items on other marketplaces';
-    
-  filteredUrls.forEach(result => {
+  // Update status message based on site type
+  if (productInfo.isFastFashion) {
+    statusMessage.textContent = 'Found sustainable alternatives on second-hand marketplaces';
+    statusMessage.className = 'status-message fast-fashion';
+  } else {
+    statusMessage.textContent = 'Found similar items on other marketplaces';
+    statusMessage.className = 'status-message second-hand';
+  }
+  
+  // Display similar items
+  productInfo.similarItems.forEach(result => {
     resultsContainer.appendChild(createResultElement(result));
   });
-
-  // Display AI-powered similar items if available
-  if (productInfo.similarItems && productInfo.similarItems.length > 0) {
-    const aiHeader = document.createElement('h3');
-    aiHeader.textContent = 'AI-Powered Similar Items';
-    aiResultsContainer.appendChild(aiHeader);
-
-    productInfo.similarItems.forEach(item => {
-      aiResultsContainer.appendChild(createAIResultElement(item));
-    });
-  }
 }
 
 // Get product information from active tab
 async function getProductInfo() {
+  console.log('Getting product info from active tab');
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   
   if (!tab) {
+    console.log('No active tab found');
     statusMessage.textContent = 'No active tab found';
-    return;
+    return null;
   }
   
+  console.log('Active tab:', tab);
+  
   try {
+    console.log('Sending message to content script');
     const response = await chrome.tabs.sendMessage(tab.id, { action: 'getProductInfo' });
-    if (response && response.searchUrls) {
+    console.log('Received response:', response);
+    
+    if (response && response.similarItems) {
       return response;
     }
   } catch (error) {
     console.error('Error getting product info:', error);
+    statusMessage.textContent = 'Error: Could not get product information. Please refresh the page and try again.';
   }
   
   statusMessage.textContent = 'No product information found on this page';
@@ -134,20 +110,30 @@ async function getProductInfo() {
 
 // Main function to search for alternatives
 async function searchAlternatives() {
-  const productInfo = await getProductInfo();
-  if (!productInfo) return;
-  
+  console.log('Starting search for alternatives');
   statusMessage.textContent = 'Loading alternatives...';
+  
+  const productInfo = await getProductInfo();
+  if (!productInfo) {
+    console.log('No product info returned');
+    return;
+  }
+  
+  console.log('Updating results with product info');
   updateResults(productInfo);
 }
 
-// Event listeners
-depopToggle.addEventListener('change', saveSettings);
-grailedToggle.addEventListener('change', saveSettings);
-poshmarkToggle.addEventListener('change', saveSettings);
+// Listen for messages from content script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Received message in popup:', message);
+  if (message.action === 'productInfoUpdated') {
+    console.log('Product info updated:', message.productInfo);
+    updateResults(message.productInfo);
+  }
+});
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadSettings();
+  console.log('Popup DOM loaded, starting search');
   await searchAlternatives();
 }); 
