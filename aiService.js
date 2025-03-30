@@ -123,42 +123,105 @@ class ClothingAIService {
     const searchQuery = this.generateSearchQuery(keywords);
     console.log('Generated search query:', searchQuery);
 
-    // Generate URLs for each target site using a generic approach
-    const similarItems = targetSites.map(site => {
-      // Create a clean domain name
-      const cleanDomain = site.replace(/^www\./, '');
-      
-      // Try different common search URL patterns
-      const searchPatterns = [
-        `https://www.${cleanDomain}/search?q=`,
-        `https://www.${cleanDomain}/search?query=`,
-        `https://www.${cleanDomain}/search?search=`,
-        `https://www.${cleanDomain}/search?search_term=`,
-        `https://www.${cleanDomain}/search?keyword=`,
-        `https://www.${cleanDomain}/catalog?q=`,
-        `https://www.${cleanDomain}/products?q=`,
-        `https://www.${cleanDomain}/shop?q=`,
-        `https://www.${cleanDomain}/collections/all?q=`,
-        `https://www.${cleanDomain}/all?q=`
-      ];
+    // Generate URLs and fetch results for each target site
+    const searchPromises = targetSites.map(async site => {
+      try {
+        // Create a clean domain name
+        const cleanDomain = site.replace(/^www\./, '');
+        
+        // Try different common search URL patterns
+        const searchPatterns = [
+          `https://www.${cleanDomain}/search?q=`,
+          `https://www.${cleanDomain}/search?query=`,
+          `https://www.${cleanDomain}/search?search=`,
+          `https://www.${cleanDomain}/search?search_term=`,
+          `https://www.${cleanDomain}/search?keyword=`,
+          `https://www.${cleanDomain}/catalog?q=`,
+          `https://www.${cleanDomain}/products?q=`,
+          `https://www.${cleanDomain}/shop?q=`,
+          `https://www.${cleanDomain}/collections/all?q=`,
+          `https://www.${cleanDomain}/all?q=`
+        ];
 
-      // Use the first pattern for now (we could try all patterns if needed)
-      const url = searchPatterns[0] + encodeURIComponent(searchQuery);
+        // Try each search pattern until we get results
+        for (const pattern of searchPatterns) {
+          const url = pattern + encodeURIComponent(searchQuery);
+          console.log('Trying URL:', url);
+          
+          try {
+            const response = await fetch(url, {
+              method: 'GET',
+              headers: {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+              },
+              mode: 'cors'
+            });
 
-      // Calculate similarity score based on keyword matches
-      const similarityScore = this.calculateSimilarityScore(keywords);
+            if (response.ok) {
+              const html = await response.text();
+              console.log('Got response from:', url);
+              
+              // Parse the HTML to extract product information
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(html, 'text/html');
+              
+              // Look for product elements (this will need to be customized per site)
+              const productElements = doc.querySelectorAll('.product, .item, .listing, .card, article');
+              
+              if (productElements.length > 0) {
+                // Extract product information from the first few results
+                const products = Array.from(productElements).slice(0, 3).map(element => {
+                  const title = element.querySelector('h1, h2, h3, .title, .name')?.textContent?.trim() || 'N/A';
+                  const price = element.querySelector('.price, .amount, [data-price]')?.textContent?.trim() || 'N/A';
+                  const image = element.querySelector('img')?.src || '';
+                  
+                  return {
+                    title,
+                    price,
+                    image,
+                    url: element.querySelector('a')?.href || url,
+                    platform: site
+                  };
+                });
 
-      return {
-        title: `Similar items on ${site}`,
-        price: 'Varies',
-        platform: site,
-        url: url,
-        similarityScore: similarityScore
-      };
+                return products;
+              }
+            }
+          } catch (error) {
+            console.log('Error fetching from pattern:', pattern, error);
+            continue;
+          }
+        }
+        
+        // If no results found, return a default item
+        return [{
+          title: `Search results on ${site}`,
+          price: 'Varies',
+          platform: site,
+          url: `https://www.${cleanDomain}/search?q=${encodeURIComponent(searchQuery)}`,
+          similarityScore: this.calculateSimilarityScore(keywords)
+        }];
+      } catch (error) {
+        console.error('Error searching site:', site, error);
+        return null;
+      }
     });
 
+    // Wait for all searches to complete
+    const results = await Promise.all(searchPromises);
+    
+    // Flatten results and filter out nulls
+    const allResults = results
+      .filter(result => result !== null)
+      .flat()
+      .map(result => ({
+        ...result,
+        similarityScore: this.calculateSimilarityScore(keywords)
+      }));
+
     // Sort by similarity score and return top 5
-    return similarItems
+    return allResults
       .sort((a, b) => b.similarityScore - a.similarityScore)
       .slice(0, 5);
   }
