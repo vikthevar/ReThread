@@ -1,10 +1,13 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 console.log('ReThread AI service starting...');
 
 // Clothing similarity search service
 class ClothingAIService {
   constructor() {
     // Google Cloud Vision API configuration
-    this.apiKey = 'AIzaSyBGA4LuZ5FxSgLTiiGfp3na41oekTDAf48'; // Will be set manually
+    this.apiKey = process.env.GOOGLE_VISION_API_KEY; // Loaded from .env
     this.apiEndpoint = 'https://vision.googleapis.com/v1/images:annotate';
     
     // Keywords for different aspects of clothing
