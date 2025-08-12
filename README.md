@@ -1,4 +1,4 @@
-# Sustainable Fashion Finder Chrome Extension
+# ReThread Chrome Extension
 
 This Chrome extension helps you find second-hand alternatives while browsing fast fashion websites. It automatically searches for similar items on popular second-hand platforms like Depop, Grailed, and Poshmark.
 
